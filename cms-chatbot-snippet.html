@@ -14,6 +14,7 @@ var SETTINGS={
   whatsappShow:"+65 8899 6423",
   email:"enquiry@cmspl.biz",         /* shown to visitors for general and chatbot enquiries */
   quoteEmail:"sales@cmspl.biz",      /* formal quotations come from here */
+  careersUrl:"https://cmspl.biz/join-our-team/", /* "Join Our Team" page for job seekers */
   side:"right",                      /* "right" or "left" corner */
   lift:0,                            /* raise the button by this many pixels if it covers something */
   nudgeAfter:25,                     /* seconds before the small "Need a price?" hint; 0 turns it off */
@@ -122,7 +123,8 @@ var FAQ=[
  {t:"contact",q:"What are your office hours?",a:"Office: 9am to 6pm, Monday to Friday. Customer service: 9am to 9pm, Monday to Saturday.",k:"office hours,hours,opening hours,operating hours,working hours,business hours,what time,what time do you open,customer service hours,!close,closing time,customer service"},
  {t:"contact",q:"Are you open 24/7?",a:"Our team is not on call 24/7, but deliveries can be scheduled outside office hours by arrangement.",k:"24/7,!24 hours,24hrs,round the clock,all day,always open,anytime,any time,24 7"},
  {t:"contact",q:"Can I speak to someone about a large or complex project?",a:"Yes. Ask for a tailored proposal and our team will contact you.",k:"large project,complex,big project,!tender,rfq,rfp,proposal,tailored,partnership,partner,long term project,enterprise,consult",act:["person","estimate"]},
- {t:"cold",q:"Are your trucks halal certified?",a:"Our trucks are not halal certified. For regular jobs and contracts, we can cater to halal requirements if needed. Let us know your requirements and our team will work out the arrangement with you.",k:"!halal,!muis,halal certified,halal certification,halal cert,halal goods,halal food,halal meat,non-halal",act:["person","estimate"]}
+ {t:"cold",q:"Are your trucks halal certified?",a:"Our trucks are not halal certified. For regular jobs and contracts, we can cater to halal requirements if needed. Let us know your requirements and our team will work out the arrangement with you.",k:"!halal,!muis,halal certified,halal certification,halal cert,halal goods,halal food,halal meat,non-halal",act:["person","estimate"]},
+ {t:"about",q:"Are you hiring?",a:"Yes, we are always looking for good drivers and delivery personnel. All positions are open to Singapore Citizens and PRs only, and we have no openings for foreign workers at the moment. We also welcome independent contractors, preferably with their own vehicle. Apply on our Join Our Team page.",k:"!hiring,!vacancy,!vacancies,!career,!careers,job opening,job openings,looking for job,looking for a job,find a job,apply for job,apply job,job application,work for you,work for cms,join your team,join cms,!recruit,recruiting,recruitment,driver vacancy,driver job,driving job,delivery job vacancy,!part-time,part time job,!freelance driver,freelance job,freelancer,independent contractor,!subcontractor,become a driver,want to drive for you,!work permit,foreigner,foreign worker,foreign workers,s pass,employment pass,singaporean only,pr only,join our team",act:["join"]}
 ];
 
 /* ---------- pricing: same rules as CMS Quote Desk and the website estimator ---------- */
@@ -285,6 +287,7 @@ function linkify(t){
   var h=esc(t);
   h=h.replace(/\+65 8899 6423/g,'<a href="https://wa.me/'+SETTINGS.whatsapp+'" target="_blank" rel="noopener">+65 8899 6423</a>');
   h=h.replace(/([a-z]+@cmspl\.biz)/g,'<a href="mailto:$1">$1</a>');
+  if(SETTINGS.careersUrl)h=h.replace(/Join Our Team page/g,'<a href="'+esc(SETTINGS.careersUrl)+'" target="_blank" rel="noopener">Join Our Team page</a>');
   return h;
 }
 var ICON={
@@ -480,6 +483,7 @@ LIVE.after=function(a){
   (f.act||[]).forEach(function(x){
     if(x==="estimate"&&!(ST.flow&&ST.flow.step))L.push({label:"Get an estimate",cls:"pri",go:function(){me("Get an estimate");startFlow()}});
     if(x==="person")L.push({label:"Talk to a person",go:function(){me("Talk to a person");handoff()}});
+    if(x==="join"&&SETTINGS.careersUrl)L.push({label:"Open Join Our Team page",cls:"pri",go:function(){window.open(SETTINGS.careersUrl,"_blank","noopener")}});
     if(x==="email")L.push({label:"Email "+SETTINGS.email,go:function(){me("Email "+SETTINGS.email);handoff("email")}});
   });
   if(a.rel!=null)L.push({label:"Related: "+FAQ[a.rel].q,go:function(){me(FAQ[a.rel].q);answer(a.rel)}});
@@ -576,10 +580,13 @@ async function askAI(t){
     clearLive();ST.flow={J:{},step:null,hist:[],done:false};ST.lead=null;save();await ask("svc");return true;
   }
   if(o.intent==="handoff"){setLive("handoff");return true}
-  setLive("aiafter");return true;
+  setLive("aiafter",{join:/Join Our Team/i.test(reply)});return true;
 }
-LIVE.aiafter=function(){
+LIVE.aiafter=function(a){
   var L=[];
+  if(a&&a.join&&SETTINGS.careersUrl&&!(ST.flow&&ST.flow.step)){
+    chips([{label:"Open Join Our Team page",cls:"pri",go:function(){window.open(SETTINGS.careersUrl,"_blank","noopener")}},{label:"Main menu",cls:"back",go:function(){home(false)}}]);return;
+  }
   if(ST.flow&&ST.flow.step)L.push({label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}});
   else L.push({label:"Get an estimate",cls:"pri",go:function(){me("Get an estimate");startFlow()}});
   L.push({label:"Talk to a person",go:function(){me("Talk to a person");handoff()}});
