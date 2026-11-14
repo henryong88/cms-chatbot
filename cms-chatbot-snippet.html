@@ -121,7 +121,8 @@ var FAQ=[
  {t:"contact",q:"How do I reach you?",a:"WhatsApp +65 8899 6423 or email enquiry@cmspl.biz. Our customer service team answers personally.",k:"reach,contact,phone,number,call,whatsapp,email,hotline,get in touch,talk,contact number",act:["person"]},
  {t:"contact",q:"What are your office hours?",a:"Office: 9am to 6pm, Monday to Friday. Customer service: 9am to 9pm, Monday to Saturday.",k:"office hours,hours,opening hours,operating hours,working hours,business hours,what time,what time do you open,customer service hours,!close,closing time,customer service"},
  {t:"contact",q:"Are you open 24/7?",a:"Our team is not on call 24/7, but deliveries can be scheduled outside office hours by arrangement.",k:"24/7,!24 hours,24hrs,round the clock,all day,always open,anytime,any time,24 7"},
- {t:"contact",q:"Can I speak to someone about a large or complex project?",a:"Yes. Ask for a tailored proposal and our team will contact you.",k:"large project,complex,big project,!tender,rfq,rfp,proposal,tailored,partnership,partner,long term project,enterprise,consult",act:["person","estimate"]}
+ {t:"contact",q:"Can I speak to someone about a large or complex project?",a:"Yes. Ask for a tailored proposal and our team will contact you.",k:"large project,complex,big project,!tender,rfq,rfp,proposal,tailored,partnership,partner,long term project,enterprise,consult",act:["person","estimate"]},
+ {t:"cold",q:"Are your trucks halal certified?",a:"Our trucks are not halal certified. For regular jobs and contracts, we can cater to halal requirements if needed. Let us know your requirements and our team will work out the arrangement with you.",k:"!halal,!muis,halal certified,halal certification,halal cert,halal goods,halal food,halal meat,non-halal",act:["person","estimate"]}
 ];
 
 /* ---------- pricing: same rules as CMS Quote Desk and the website estimator ---------- */
@@ -555,6 +556,8 @@ async function askAI(t){
     if(!o||o.error||typeof o.reply!=="string")o=null;
   }catch(e){o=null}
   typing.remove();
+  /* a garbled or near-empty reply (rare) is not shown: the approved FAQ answers instead */
+  if(o&&!(o.reply.trim().length>=12||/[\u3000-\u9fff\uac00-\ud7af]{4}/.test(o.reply)))return false;
   if(!o){ST.aiFails=(ST.aiFails||0)+1;if(ST.aiFails>=2)ST.aiOff=true;save();return false}
   ST.ai++;ST.aiFails=0;if(o.unanswered)ST.asked.push("[no approved answer] "+t);save();
   var reply=safeReply(o.reply,t);
