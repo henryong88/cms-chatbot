@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CMS Chatbot Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0f2a52;--red:#ae1e23;--ink:#152033;--muted:#566275;--line:#e1e6ee;--soft:#f2f5f9;--bg:#ffffff;--card:#ffffff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8edf5;--muted:#a3aec0;--line:#2a3547;--soft:#141c29;--bg:#0c1320;--card:#111a29}}
+:root[data-theme="dark"]{--ink:#e8edf5;--muted:#a3aec0;--line:#2a3547;--soft:#141c29;--bg:#0c1320;--card:#111a29}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Barlow,system-ui,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:28px 16px 140px}
+.tag{display:inline-block;font:600 12px/1 Barlow;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--red);padding:6px 9px;border-radius:4px}
+h1{font:700 34px/1.1 "Barlow Condensed",Barlow,sans-serif;margin:14px 0 8px;color:var(--ink)}
+p{margin:0 0 14px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px;margin:22px 0}
+h2{font:600 18px/1.3 Barlow;margin:0 0 10px}
+ol{margin:0;padding:0;list-style:none;counter-reset:n}
+li{counter-increment:n;padding:12px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:28px 1fr;gap:2px 8px}
+li:first-child{border-top:0}
+li::before{content:counter(n);grid-row:span 2;font:700 15px/22px "Barlow Condensed";color:var(--red)}
+.k{font-weight:600;font-size:14px}
+li button{all:unset;cursor:pointer;color:var(--muted);font-size:15px;line-height:1.4}
+li button:hover,li button:focus-visible{color:var(--ink);text-decoration:underline}
+.note{font-size:14px;background:var(--soft);border-radius:10px;padding:12px 14px;color:var(--muted)}
+</style></head>
+<body><main class="wrap">
+<span class="tag">Test page · not public</span>
+<h1>CMS website chatbot, now with AI</h1>
+<p>Open the chat button at the bottom right and talk to it the way a customer would. Tap any line below to send it straight into the chat, or type your own.</p>
+<div class="card"><h2>Things to try</h2><ol>
+<li><span class="k">Describe a job in one go</span><button type="button" data-q="20 cartons frozen meat from Tuas to Changi tomorrow, how much?">20 cartons frozen meat from Tuas to Changi tomorrow, how much?</button></li>
+<li><span class="k">Regular runs</span><button type="button" data-q="We need 15 outlets daily chilled from Pandan Loop, Mon to Sat">We need 15 outlets daily chilled from Pandan Loop, Mon to Sat</button></li>
+<li><span class="k">Drivers</span><button type="button" data-q="I need 2 drivers for my own vans for 3 months">I need 2 drivers for my own vans for 3 months</button></li>
+<li><span class="k">Something not in the FAQ</span><button type="button" data-q="Are your reefer trucks halal certified?">Are your reefer trucks halal certified?</button></li>
+<li><span class="k">Push for a price</span><button type="button" data-q="Just give me a ballpark figure in dollars">Just give me a ballpark figure in dollars</button></li>
+<li><span class="k">Job seekers</span><button type="button" data-q="Any driver vacancy? I am on work permit">Any driver vacancy? I am on work permit</button></li>
+<li><span class="k">Off-topic</span><button type="button" data-q="Tell me a joke about lorries">Tell me a joke about lorries</button></li>
+<li><span class="k">Bookings</span><button type="button" data-q="Ok I want to book a van for next Monday, please confirm">Ok I want to book a van for next Monday, please confirm</button></li>
+</ol></div>
+<p class="note">Prices always come from the CMS rate card, never from the AI. The AI writes the replies and fills in the estimate questions it already knows; if it is unsure, it hands over to WhatsApp or email. Leads sent from this page are real and reach the Leads board once the Make lead scenario is switched on.</p>
+</main>
+<script>
+document.addEventListener("click",function(e){var b=e.target.closest("button[data-q]");if(!b)return;
+  if(window.CMSChat&&CMSChat.open)CMSChat.open();
+  setTimeout(function(){var h=document.getElementById("cms-chatbot"),r=h&&h.shadowRoot;if(!r)return;var i=r.getElementById("cmsbot-in"),s=r.querySelector(".send");if(i&&s){i.value=b.dataset.q;i.dispatchEvent(new Event("input",{bubbles:true}));s.click()}},450)});
+</script>
+__SNIPPET__
+</body></html>

@@ -1,0 +1,920 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Test page</title>
+<style>body{margin:0;font-family:Georgia,serif;background:#fafafa;color:#333} h1{font-size:40px;color:purple} button{background:yellow!important;font-size:30px!important} .content{padding:40px;max-width:800px} p{line-height:2}</style>
+<script>window.CMS_CHAT_SETTINGS={preview:false,endpoint:"http://localhost:8765/hook",nudgeAfter:2};</script>
+</head><body><div class="content"><h1>Hostile theme test page</h1><p>This page has aggressive global CSS (yellow buttons, serif fonts) to prove the chatbot is isolated from the WordPress theme.</p>
+<p>Lorem ipsum dolor sit amet. </p><button>Theme button</button></div>
+<!-- CMS website chatbot v1.0 · Channel Management Systems Pte Ltd · built 8 Nov 2026
+     Paste this whole block once, so it loads on every page (see the install guide). -->
+<script id="cms-chatbot-script">
+(function(){
+"use strict";
+if(window.__cmsChatLoaded)return;window.__cmsChatLoaded=true;
+/* ============================ SETTINGS ============================
+   The only part that may ever need changing. Everything else runs by itself. */
+var SETTINGS={
+  /* Where requests are sent. Today: the Make webhook that writes the monday "Leads" board and
+     emails sales@ and Henry. Later, point this at CMS Systems instead; nothing else changes. */
+  endpoint:"https://hook.eu1.make.com/clwhr1mcefqmgp49shpi3epel8qylndg",
+  whatsapp:"6588996423",            /* digits only, with country code */
+  whatsappShow:"+65 8899 6423",
+  email:"enquiry@cmspl.biz",         /* shown to visitors for general and chatbot enquiries */
+  quoteEmail:"sales@cmspl.biz",      /* formal quotations come from here */
+  careersUrl:"https://cmspl.biz/join-our-team/", /* "Join Our Team" page for job seekers */
+  side:"right",                      /* "right" or "left" corner */
+  lift:0,                            /* raise the button by this many pixels if it covers something */
+  nudgeAfter:25,                     /* seconds before the small "Need a price?" hint; 0 turns it off */
+  preview:"auto",                    /* "auto" = never sends from claude.ai previews; false = always send */
+  /* AI replies (Claude via Make). Leave aiEndpoint "" to run on the approved FAQ only. */
+  aiEndpoint:"https://hook.eu1.make.com/apfnve9vb4pjos77n2x7gceh714c9bnq",
+  aiMaxPerVisit:15,                  /* AI replies per visitor per visit; after that the FAQ chatbot carries on */
+  aiTimeout:25                       /* seconds to wait for an AI reply before falling back */
+};
+/* Rate card: a copy of the CMS Quote Desk rate card (8 Nov 2026). When the website estimator is on the
+   same page, its rates (window.CMS_QF_CONFIG) are used instead, so the website keeps one copy. */
+var RATES={
+  gst:9, variancePct:20, reeferFloor:25, multiDropKm:25,
+  tailored:{vehicles:["t24"],maxAdhocDrops:30,maxDropsPerDay:60,maxLastmileDrops:300,maxHireVehicles:3},
+  vehicles:[
+    {id:"moto",name:"Motorcycle",base:12,inclKm:10,perKm:0.8,drop:6,hour:25,day:180,month:3200,rf:null},
+    {id:"van",name:"Van",base:40,inclKm:15,perKm:1.2,drop:10,hour:46,day:360,month:5800,rf:null},
+    {id:"l10",name:"10 ft truck",base:70,inclKm:20,perKm:1.5,drop:12,hour:60,day:480,month:7200,rf:{base:110,inclKm:20,perKm:1.9,drop:15,hour:80,day:640,month:9800}},
+    {id:"l14",name:"14 ft truck",base:95,inclKm:20,perKm:1.8,drop:15,hour:75,day:600,month:8800,rf:{base:140,inclKm:20,perKm:2.2,drop:18,hour:95,day:760,month:11800}},
+    {id:"t24",name:"24 ft truck",base:180,inclKm:20,perKm:2.8,drop:25,hour:120,day:950,month:14500,rf:null}
+  ],
+  speeds:[{id:"express2",name:"Urgent (within 2 hours)",mult:2},{id:"express4",name:"Express (within 4 hours)",mult:1.5},{id:"sameday",name:"Same day",mult:1.25},{id:"standard",name:"Next working day",mult:1},{id:"economy",name:"2–3 working days",mult:0.9}],
+  surch:{afterHours:26,sunph:36,expressFlat:26,helper:30,helperHr:20,helperMonth:2400,bulky:15,fragile:10,frozenPct:10,extraPiece:2,motoPieces:3},
+  lastmile:{ambient:8,chilled:11,frozen:13,maxKg:10,overKg:0.5},
+  hire:{weekDays:6},
+  tiers:[{min:100,pct:5},{min:300,pct:8},{min:1000,pct:12}],
+  daysPerMonth:{monfri:22,monsat:26,monsun:30}, sundaysPerMonth:4.3, phPerMonth:0.9,
+  publicHolidays:["2026-01-01","2026-02-17","2026-02-18","2026-03-21","2026-04-03","2026-05-01","2026-05-27","2026-05-31","2026-06-01","2026-08-09","2026-08-10","2026-11-08","2026-11-09","2026-12-25",
+                  "2027-01-01","2027-02-06","2027-02-07","2027-02-08","2027-03-10","2027-03-26","2027-05-01","2027-05-17","2027-05-20","2027-08-09","2027-10-28","2027-12-25"],
+  zones:[["C","Central / CBD"],["E","East"],["NE","North-East"],["N","North"],["W","West"],["FW","Tuas / Far West"],["CA","Changi Airport / Loyang"],["S","Sentosa"]],
+  km:{C:{C:6,E:15,NE:14,N:20,W:15,FW:28,CA:20,S:8},E:{E:6,NE:12,N:22,W:28,FW:40,CA:8,S:20},NE:{NE:6,N:15,W:24,FW:35,CA:16,S:20},N:{N:6,W:20,FW:28,CA:25,S:26},W:{W:6,FW:14,CA:33,S:16},FW:{FW:6,CA:45,S:28},CA:{CA:5,S:26},S:{S:3}}
+};
+/* =================================================================== */
+
+/* ===== Approved visitor FAQ (approved by Henry Ong, 8 Nov 2026). Answers are word for word. =====
+   k = words and phrases that point to this answer. act = buttons shown under the answer. */
+var TOPICS=[["about","About CMS"],["services","Services"],["cold","Cold chain"],["pricing","Pricing and quotes"],["booking","Booking"],["tracking","Tracking and proof"],["goods","Goods and handling"],["insurance","Insurance"],["outdrive","OutDrive"],["contracts","Contracts and accounts"],["contact","Contact"]];
+var FAQ=[
+ {t:"about",q:"Who is Channel Management Systems?",a:"A Singapore delivery and logistics company founded in 2002, offering courier, last-mile, cold chain (reefer) delivery and delivery personnel supply.",k:"who are you,who is,about you,company,cms,channel management,founded,history,background,how long have,established,since when,been around,you guys"},
+ {t:"about",q:"What areas do you cover?",a:"We serve Singapore only.",k:"area,areas,cover,coverage,islandwide,!malaysia,!johor,johor bahru,bahru,!overseas,cross border,outside singapore,international,!jb,sentosa,tuas,jurong,where do you go"},
+ {t:"about",q:"What kind of clients do you work with?",a:"Businesses of all sizes, including F&B, retail, e-commerce and distributors, plus consumers for chilled and frozen home deliveries. We deliver ambient goods as well as chilled and frozen, and our motorcycle team also serves financial institutions.",k:"clients,customers,kind of client,type of client,industries,industry,f&b,retail,ecommerce,e-commerce,distributor,distributors,consumer,individual,small business,sme,!bank,!banks,banking,!financial institution,financial institutions,finance,insurer,ambient,ambient goods,dry goods"},
+ {t:"about",q:"What makes CMS different?",a:"Every Delivery Counts. We give every job close attention and bring MNC-level service at SME rates. Each job is tailored to your requirements, with backup planning built in so deliveries keep running. Many jobs are actively monitored by our dedicated customer service team from 9am to 9pm, Monday to Saturday, and most come with an ETA, which is rare for a delivery company of our size.",k:"different,why cms,why choose,better,special,unique,advantage,stand out,compare,competitor,!mnc,!quality,service quality,reliable,reliability,trust,good service,every delivery counts,!why cms,why should i"},
+
+ {t:"services",q:"What services do you offer?",a:"Ad-hoc delivery, Regular scheduled delivery (including vehicle hire), Courier, Reefer Truck for chilled and frozen goods, Last-mile delivery, and OutDrive.",k:"services,service,offer,what do you do,you guys do,guys do,provide,solutions,options,range of services",act:["estimate"]},
+ {t:"services",q:"What is OutDrive?",a:"Delivery personnel supplied by the day, week or month, with or without a vehicle, attached to your operation for the period you need.",k:"!outdrive,out drive,delivery personnel,manpower,supply driver,driver supply,supply drivers,dp,headcount,outsource driver",act:["estimate"]},
+ {t:"services",q:"Do you provide backup drivers if my assigned driver is away?",a:"Yes. For weekly and monthly hires, we plan backup drivers so your deliveries keep running. For single-day hires, backup is harder to arrange at short notice.",k:"backup,back up,replacement,relief,assigned driver,away,absent,cover,standby"},
+ {t:"services",q:"What is the difference between ad-hoc and regular delivery?",a:"Ad-hoc is a one-off job booked when needed. Regular is a scheduled, repeating arrangement, usually at better rates.",k:"ad-hoc,adhoc,ad hoc,one-off,one off,regular,scheduled,difference,recurring,repeat,contract delivery"},
+ {t:"services",q:"Can I hire a vehicle with a driver for a whole day?",a:"Yes, through OutDrive or Regular hire.",k:"hire,rent,rental,whole day,full day,day hire,vehicle with driver,van with driver,lorry with driver,truck with driver,charter,dedicated",act:["estimate"]},
+ {t:"services",q:"Do you do same-day delivery?",a:"Yes. With enough volume, we normally collect and deliver straight away. Share your details and we'll confirm availability.",k:"same day,same-day,today,straight away,immediately,express,fast,quick,asap,now,instant",act:["estimate"]},
+ {t:"services",q:"Do you deliver on weekends and public holidays?",a:"Yes. Surcharges may apply.",k:"weekend,weekends,saturday,!sunday,!public holiday,holiday,ph,deepavali,christmas,chinese new year,cny,hari raya,new year,work on sunday"},
+ {t:"services",q:"Do you do night or early-morning deliveries?",a:"Yes, by arrangement. Time surcharges may apply.",k:"night,early morning,morning,midnight,overnight,late,evening,after hours,after-hours,5am,6am,before opening,twilight,dawn"},
+
+ {t:"cold",q:"What temperatures can your reefer trucks hold?",a:"Chilled at 2 to 8 °C and frozen at -18 °C.",k:"temperature,temperatures,degree,degrees,celsius,°c,how cold,chilled,frozen,freezer,cold,reefer,refrigerated,cooling,-18,minus"},
+ {t:"cold",q:"Do you monitor temperature during delivery?",a:"We check the temperature at each delivery point.",k:"monitor,monitoring,!temperature log,data logger,logger,record temperature,check temperature,temperature check,temperature reading,track temperature"},
+ {t:"cold",q:"Do you deliver chilled or frozen goods to homes?",a:"Yes. Reefer Truck covers both business and home deliveries.",k:"!home,!homes,house,residential,consumer,b2c,customer home,doorstep,household,personal,my place",act:["estimate"]},
+ {t:"cold",q:"Can you handle food products?",a:"Yes, including chilled and frozen food. We do not deliver cooked food.",k:"food,foods,meat,seafood,fish,dairy,ice cream,vegetables,produce,groceries,grocery,f&b,cake,bakery,chicken,beverages,drinks"},
+ {t:"cold",q:"What sizes are your reefer trucks?",a:"10ft and 14ft.",k:"size,sizes,how big,10ft,14ft,10 ft,14 ft,10 foot,14 foot,truck size,capacity,reefer truck,fleet,lorry size"},
+
+ {t:"pricing",q:"How much does a delivery cost?",a:"Ask here in the chat for an estimate. Depending on the job, you'll get an exact price, a price range, or a tailored proposal. Our team then sends a formal quotation from sales@cmspl.biz.",k:"cost,costs,price,prices,pricing,how much,rate,rates,charge,charges,fee,fees,quote,quotation,estimate,budget,expensive,cheap,per drop,per trip",act:["estimate"]},
+ {t:"pricing",q:"Why is my estimate a range and not an exact price?",a:"Some jobs depend on details such as access, waiting time and load, so we show a range of about ±20% until we confirm them.",k:"range,not exact,exact price,why range,20%,plus minus,±,accurate,estimate range,firm price"},
+ {t:"pricing",q:"What surcharges might apply?",a:"Common ones cover time (after hours, weekends), access (restricted sites, stairs), load (heavy or bulky items), failed deliveries, and extra manpower. Your quotation lists any that apply.",k:"!surcharge,!surcharges,extra charge,extra charges,additional charge,!hidden,hidden fee,additional cost,extra cost,add-on,addon,top up"},
+ {t:"pricing",q:"Is there a minimum order or minimum charge?",a:"Every job is priced on its own details, such as route, timing, volume and handling. Share your requirements and we'll give you an estimate.",k:"!minimum,min order,minimum order,minimum charge,smallest,small order,moq,minimum spend",act:["estimate"]},
+ {t:"pricing",q:"Do you offer discounts for regular or volume jobs?",a:"Yes, regular and volume arrangements are priced accordingly. Ask for a tailored proposal.",k:"discount,discounts,volume,bulk,cheaper,better rate,deal,promo,promotion,special price,long term"},
+ {t:"pricing",q:"How quickly will I get a formal quotation?",a:"Within one working day.",k:"how quickly,how fast,how long,quotation time,when will i get,formal quotation,turnaround,reply,respond,response time,get back"},
+ {t:"pricing",q:"What are your payment terms?",a:"Terms depend on the type of work, ranging from cash on delivery to 7 to 30 days' credit.",k:"payment terms,terms,credit terms,credit,cod,cash on delivery,30 days,7 days,14 days,invoice due,pay later"},
+ {t:"pricing",q:"What payment methods do you accept?",a:"PayNow and bank transfer.",k:"payment method,payment methods,pay,paynow,pay now,bank transfer,transfer,credit card,card,cash,cheque,paylah,how to pay,!bank details,!bank account,!account number,!bank transfer"},
+ {t:"pricing",q:"Is a deposit required?",a:"For some dedicated vehicle arrangements, a security deposit may apply as set out in the service contract.",k:"!deposit,security deposit,upfront,advance payment,pay first,prepay,down payment"},
+
+ {t:"booking",q:"How do I book a delivery?",a:"Chat here, WhatsApp us on +65 8899 6423, or email enquiry@cmspl.biz.",k:"book,booking,how to book,schedule,arrange,make a booking,engage,hire you,start",act:["estimate","person"]},
+ {t:"booking",q:"How far in advance should I book?",a:"We recommend at least two working days ahead for ad-hoc jobs, and longer for dedicated or OutDrive arrangements. Same-day jobs are possible, subject to availability.",k:"!in advance,advance booking,ahead,!notice,!lead time,!how early,days before,how soon should,book ahead"},
+ {t:"booking",q:"Can I book a last-minute or urgent job?",a:"We try our best. Tell us the details and we will confirm availability quickly. Urgent surcharges may apply.",k:"!last minute,last-minute,!urgent,urgently,emergency,rush,short notice,within hours,2 hours,4 hours,asap booking",act:["estimate","person"]},
+ {t:"booking",q:"Can I change or cancel a booking?",a:"Yes. There is no charge as long as we have not yet incurred any cost for the job.",k:"change booking,!cancel,!cancellation,!reschedule,!amend,postpone,modify,refund,change the date,change my booking"},
+ {t:"booking",q:"What details do you need to quote or book?",a:"Pickup and drop-off addresses, date and time, type of goods, temperature if chilled or frozen, quantity or size, and your contact details.",k:"details,information,what do you need,what info,requirements,what to provide,need from me"},
+ {t:"booking",q:"Can you handle multiple drop-off points in one trip?",a:"Yes. Multi-drop routes are common for our last-mile and regular clients.",k:"multiple,multi drop,multi-drop,many drops,several,drop points,drop-off points,stops,more than one,!outlets,branches,route,locations"},
+ {t:"booking",q:"Do you provide time windows for delivery?",a:"Yes. Our ETA delivery tells you and your recipients when to expect us, and is popular with customers who need precise timing.",k:"time window,window,timeslot,time slot,eta,specific time,exact time,appointment,timing,when will it arrive,arrival time"},
+
+ {t:"tracking",q:"Can I track my delivery?",a:"Yes.",k:"!track,!tracking,trace,where is my,status,follow,live location,gps"},
+ {t:"tracking",q:"Do you provide proof of delivery?",a:"Yes, with a photo and signature on completion.",k:"proof,!pod,proof of delivery,signature,photo,picture,evidence,epod,acknowledgement,acknowledge"},
+ {t:"tracking",q:"What happens if the recipient is not available?",a:"We follow your instructions. A failed delivery or re-delivery surcharge may apply, as listed in your quotation.",k:"not available,unavailable,not home,!nobody,!no one,nobody home,absent,failed delivery,!failed,redelivery,re-delivery,missed,not at home,closed,not around"},
+ {t:"tracking",q:"Will you notify the recipient before arrival?",a:"Yes, in most cases, especially for home deliveries.",k:"!notify,!notification,notifications,inform,!sms,message recipient,call recipient,alert,heads up,before arrival,let them know,before you arrive"},
+
+ {t:"goods",q:"What items can you deliver?",a:"General goods, documents, parcels, food (except cooked food), and chilled or frozen products.",k:"items,what goods,goods,products,documents,parcels,cartons,boxes,accept,what can you deliver,kind of goods,type of goods"},
+ {t:"goods",q:"Are there items you will not carry?",a:"Yes. We do not carry dangerous goods, live animals or livestock, cash, cooked food, or any prohibited or illegal items.",k:"not carry,won't carry,will not carry,!prohibited,!dangerous,!hazardous,dg,!chemical,!chemicals,!flammable,!explosive,gas cylinder,battery,batteries,!live animal,!animals,!pet,!pets,!dog,!cat,!livestock,!cash,!cooked,cooked food,hot food,!catering,!bento,!illegal,restricted items,!weapon"},
+ {t:"goods",q:"What is the maximum size or weight you can handle?",a:"It depends on the vehicle. Tell us the size, weight and quantity of your goods and we'll match the right vehicle.",k:"maximum,max,how heavy,weight,size limit,heavy,kg,!tonne,!tonnes,!ton,pallet size,dimensions,large item,max weight,biggest"},
+ {t:"goods",q:"Do your drivers help with loading and unloading?",a:"Yes for standard handling. Heavy, bulky or staircase jobs may need extra manpower, quoted separately.",k:"!loading,!unloading,load,!unload,help carry,carry up,lift,stairs,staircase,manpower,helper,movers,bring up,carry"},
+ {t:"goods",q:"Do you provide pallets, trolleys or packing materials?",a:"No. Please have your goods packed and ready for collection.",k:"pallet,pallets,trolley,trolleys,packing,packaging,boxes provided,ice pack,ice packs,dry ice,cooler box,insulated,materials,wrap"},
+ {t:"goods",q:"Can you deliver to shopping malls, condos or restricted sites?",a:"Yes. Access charges such as parking or loading bay fees may apply.",k:"mall,malls,shopping mall,condo,condominium,restricted,loading bay,hospital,airport,port,cbd,office building,security,parking"},
+
+ {t:"insurance",q:"Are my goods insured?",a:"Yes, up to S$100 per job. For higher-value goods, we recommend arranging your own insurance.",k:"insurance,insured,insure,coverage,cover value,liability,high value,valuable,claim limit"},
+ {t:"insurance",q:"What happens if goods are damaged or lost?",a:"Please check your goods on receipt. Report any damage or loss within one working day so we can investigate properly. Once confirmed, we issue a credit note.",k:"!damaged,!damage,!lost,loss,missing,!broken,claim,compensation,complaint,wrong item,dented,crushed"},
+ {t:"insurance",q:"What if chilled or frozen goods arrive outside temperature?",a:"Report it within one working day. We investigate and follow due process for compensation.",k:"!outside temperature,!thawed,!melted,!melt,warm,temperature breach,not cold,!defrost,!defrosted,spoilt,spoiled,temperature problem"},
+
+ {t:"outdrive",q:"Can I hire a driver without a vehicle?",a:"Yes. OutDrive supplies delivery personnel with or without a vehicle.",k:"without vehicle,without a vehicle,driver only,only driver,just a driver,no vehicle,!own vehicle,own van,own truck,hire driver,driver hire",act:["estimate"]},
+ {t:"outdrive",q:"How long can I hire a driver for?",a:"By the day, week or month.",k:"how long,period,duration,daily,weekly,monthly,hire monthly,hire weekly,hire daily,per day,per week,per month,short term,long term,hire period"},
+ {t:"outdrive",q:"Are your drivers trained and licensed?",a:"Yes. Our drivers are trained and hold the right licences for the vehicles they drive.",k:"trained,training,licensed,licence,license,qualified,experienced,class 3,class 4,driving licence"},
+ {t:"outdrive",q:"Can a driver drive my company vehicle?",a:"Yes, subject to the vehicle liability terms in our service contract.",k:"my vehicle,our vehicle,company vehicle,my van,my truck,our van,our truck,drive my,drive our,client vehicle"},
+ {t:"outdrive",q:"Can I hire your drivers directly?",a:"Our service contract includes a non-solicitation clause, so drivers cannot be hired away without agreement.",k:"hire directly,poach,employ,non-solicitation,non solicitation,recruit,take over,hire your driver,direct hire"},
+ {t:"outdrive",q:"What if the driver is sick or on leave?",a:"For weekly and monthly hires, we arrange a replacement as part of our backup planning.",k:"!sick,!mc,medical leave,!on leave,leave,ill,replacement driver,driver absent,no show,off day"},
+
+ {t:"contracts",q:"Do I need to sign a contract?",a:"Ad-hoc jobs need only an accepted quotation. Regular, dedicated and OutDrive arrangements use our service contract.",k:"contract,sign,agreement,terms and conditions,commitment,lock in,tie in"},
+ {t:"contracts",q:"Do you offer service level agreements?",a:"Yes. An SLA and KPI appendix can be added to your contract.",k:"sla,service level,kpi,kpis,performance,guarantee,on-time,on time"},
+ {t:"contracts",q:"Can I open a credit account?",a:"Yes. Email enquiry@cmspl.biz to apply.",k:"credit account,account,open account,trade account,corporate account,apply credit",act:["email"]},
+ {t:"contracts",q:"Do you issue tax invoices?",a:"Yes. CMS is GST-registered and issues tax invoices.",k:"invoice,invoices,tax invoice,gst,gst registered,receipt,billing,bill"},
+
+ {t:"contact",q:"How do I reach you?",a:"WhatsApp +65 8899 6423 or email enquiry@cmspl.biz. Our customer service team answers personally.",k:"reach,contact,phone,number,call,whatsapp,email,hotline,get in touch,talk,contact number",act:["person"]},
+ {t:"contact",q:"What are your office hours?",a:"Office: 9am to 6pm, Monday to Friday. Customer service: 9am to 9pm, Monday to Saturday.",k:"office hours,hours,opening hours,operating hours,working hours,business hours,what time,what time do you open,customer service hours,!close,closing time,customer service"},
+ {t:"contact",q:"Are you open 24/7?",a:"Our team is not on call 24/7, but deliveries can be scheduled outside office hours by arrangement.",k:"24/7,!24 hours,24hrs,round the clock,all day,always open,anytime,any time,24 7"},
+ {t:"contact",q:"Can I speak to someone about a large or complex project?",a:"Yes. Ask for a tailored proposal and our team will contact you.",k:"large project,complex,big project,!tender,rfq,rfp,proposal,tailored,partnership,partner,long term project,enterprise,consult",act:["person","estimate"]},
+ {t:"cold",q:"Are your trucks halal certified?",a:"Our trucks are not halal certified. For regular jobs and contracts, we can cater to halal requirements if needed. Let us know your requirements and our team will work out the arrangement with you.",k:"!halal,!muis,halal certified,halal certification,halal cert,halal goods,halal food,halal meat,non-halal",act:["person","estimate"]},
+ {t:"about",q:"Are you hiring?",a:"Yes, we are always looking for good drivers and delivery personnel. All positions are open to Singapore Citizens and PRs only, and we have no openings for foreign workers at the moment. We also welcome independent contractors, preferably with their own vehicle. Apply on our Join Our Team page.",k:"!hiring,!vacancy,!vacancies,!career,!careers,job opening,job openings,looking for job,looking for a job,find a job,apply for job,apply job,job application,work for you,work for cms,join your team,join cms,!recruit,recruiting,recruitment,driver vacancy,driver job,driving job,delivery job vacancy,!part-time,part time job,!freelance driver,freelance job,freelancer,independent contractor,!subcontractor,become a driver,want to drive for you,!work permit,foreigner,foreign worker,foreign workers,s pass,employment pass,singaporean only,pr only,join our team",act:["join"]}
+];
+
+/* ---------- pricing: same rules as CMS Quote Desk and the website estimator ---------- */
+function CFG(){
+  var o={},k,W=window.CMS_QF_CONFIG;
+  for(k in RATES)o[k]=RATES[k];
+  if(W&&typeof W==="object")["gst","variancePct","tailored","vehicles","speeds","surch","lastmile","tiers","daysPerMonth","sundaysPerMonth","phPerMonth","publicHolidays","zones","km","multiDropKm"].forEach(function(x){if(W[x]!=null)o[x]=W[x]});
+  if(W&&W.hire&&W.hire.weekDays)o.hire={weekDays:W.hire.weekDays};
+  return o;
+}
+var num=function(v){var n=parseFloat(v);return isFinite(n)?n:0};
+var r2=function(n){return Math.round(n*100)/100};
+var SERVICES={
+  reefer:{ui:"Reefer Truck",sub:"Chilled or frozen goods",label:"Reefer truck delivery",est:"van",model:"trip"},
+  van:{ui:"Van or truck",sub:"Ambient goods, any size",label:"Van / truck delivery",est:"van",model:"trip"},
+  courier:{ui:"Courier",sub:"Documents and parcels",label:"Courier",est:"courier",model:"trip"},
+  lastmile:{ui:"Last-mile",sub:"Many drops to homes or stores",label:"Last-mile / e-commerce",est:"lastmile",model:"perdrop"},
+  outdrive:{ui:"OutDrive",sub:"Delivery personnel by day, week or month",label:"OutDrive",est:"hire",model:"hire"}
+};
+var TEMPS=[["ambient","Ambient"],["chilled","Chilled (2–8 °C)"],["frozen","Frozen (−18 °C)"],["mixed","Mixed chilled and frozen"]];
+var WINDOWS=[["9-9","Anytime 9 am – 9 pm (standard)"],["9-6","Anytime 9 am – 6 pm"],["9-10","Anytime 9 am – 10 pm"],["4h","Within a 4-hour window"],["appt","Fixed appointment time"]];
+var DAYS=[["monfri","Mon – Fri"],["monsat","Mon – Sat"],["monsun","Mon – Sun"]];
+var ADDROPS=[["1","1 drop-off point",1],["2-5","2 to 5",4],["6-10","6 to 10",8],["11-20","11 to 20",15],["21-30","21 to 30",25],[">30","More than 30",40]];
+var PERDAY=[["1","1",1],["2-10","2 to 10",6],["11-20","11 to 20",15],["21-30","21 to 30",25],["31-50","31 to 50",40],["51-100","51 to 100",75],["101-200","101 to 200",150],[">200","More than 200",250]];
+var PIECES=[["1","1",1],["2-3","2 to 3",3],["4-5","4 to 5",5],["6-10","6 to 10",8],["11-30","11 to 30",20]];
+var WEIGHT_PCL=[["<1","Under 1 kg",0.8],["1-5","1 to 5 kg",3],["5-10","5 to 10 kg",7.5],["10-20","10 to 20 kg",15],["20-50","20 to 50 kg",35]];
+var pick=function(list,v,exact){if(exact!=null&&String(exact).trim()!=="")return num(exact);var x=list.filter(function(i){return i[0]===v})[0];return x?x[2]:0};
+var labelOf=function(list,v){var x=list.filter(function(i){return i[0]===v})[0];return x?x[1]:""};
+function zoneName(id){var z=CFG().zones.filter(function(x){return x[0]===id})[0];return z?z[1]:""}
+function zoneKm(a,b){var K=CFG().km;if(!a||!b)return null;var v=(K[a]&&K[a][b]);if(v==null)v=(K[b]&&K[b][a]);return v==null?null:v}
+function speedOf(id){var S=CFG().speeds;return S.filter(function(s){return s.id===id})[0]||S.filter(function(s){return s.id==="standard"})[0]||S[0]}
+function defSpeed(J){return J.speed||(J.svc==="courier"?"sameday":"standard")}
+function isCold(J){return !!J.temp&&J.temp!=="ambient"}
+function dayInfo(iso){if(!iso)return {sun:false,ph:false};var d=new Date(iso+"T00:00:00");return {sun:d.getDay()===0,ph:CFG().publicHolidays.indexOf(iso)>=0}}
+function fiso(iso){if(!iso)return "";var M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],p=iso.split("-").map(Number);return p[2]+" "+M[p[1]-1]+" "+p[0]}
+function rateOf(J){
+  var C=CFG(),cold=isCold(J),BASIS={courier:"moto",van:"van",reefer:"l10",lastmile:"van",outdrive:"van"};
+  var id=J.vehicle,auto=!id;if(auto)id=cold?"l10":(BASIS[J.svc]||"van");
+  var v=C.vehicles.filter(function(x){return x.id===id})[0]||C.vehicles[0];
+  if(cold&&!v.rf)v=C.vehicles.filter(function(x){return x.rf})[0]||v;
+  var r=Object.assign({},v);if(cold&&v.rf){Object.assign(r,v.rf);r.name=v.name+" (reefer)"}
+  r.label=auto?"Vehicle to be assigned by CMS":r.name;return r;
+}
+function modelOf(J){return SERVICES[J.svc]?SERVICES[J.svc].model:"trip"}
+function kindOf(J){return J.svc==="outdrive"?(J.hireUnit==="month"?"regular":"adhoc"):J.kind}
+function dropsOf(J){return J.kind==="regular"?Math.max(1,pick(PERDAY,J.perDay,J.perDayExact)||1):Math.max(1,pick(ADDROPS,J.drops)||1)}
+function tripKm(J){
+  var C=CFG(),d=dropsOf(J);
+  if(d>1)return {km:num(C.multiDropKm),known:true,multi:true};
+  var k=zoneKm(J.colArea,J.delArea);
+  return k==null?{km:num(C.multiDropKm),known:false,multi:false}:{km:k,known:true,multi:false};
+}
+function tripCost(J,v,km,drops,mult){
+  var S=CFG().surch,transport=num(v.base)+Math.max(0,km-num(v.inclKm))*num(v.perKm)+Math.max(0,drops-1)*num(v.drop);
+  var c=transport*mult;
+  if(J.temp==="frozen"||J.temp==="mixed")c+=transport*num(S.frozenPct)/100;
+  var pcs=pick(PIECES,J.pieces);
+  if(J.vehicle==="moto"&&pcs>num(S.motoPieces))c+=(pcs-num(S.motoPieces))*num(S.extraPiece);
+  if(J.handling==="bulky")c+=num(S.bulky);
+  if(J.handling==="fragile")c+=num(S.fragile);
+  if(J.handling==="helper")c+=num(S.helper);
+  return c;
+}
+function calc(J){
+  var C=CFG(),S=C.surch,m=modelOf(J),kind=kindOf(J),o={rate:0,unit:"",qty:1,monthly:false,specs:[],extras:[],floor:false,unknownArea:false};
+  var sp=isCold(J)?speedOf("sameday"):speedOf(defSpeed(J));
+  var tempTxt=J.temp&&J.temp!=="ambient"?" · "+labelOf(TEMPS,J.temp):"";
+  var dpm=num(C.daysPerMonth[J.days])||22,sunDays=J.days==="monsun"?num(C.sundaysPerMonth):0,phDays=J.ph==="yes"?num(C.phPerMonth):0;
+  var di=dayInfo(J.date),sunph=kind==="adhoc"&&(di.sun||di.ph);
+  var winTxt=labelOf(WINDOWS,J.window||"9-9");
+  var tierDisc=function(q){return C.tiers.reduce(function(a,t){return q>=num(t.min)?Math.max(a,num(t.pct)):a},0)};
+  var daysTxt=function(){return labelOf(DAYS,J.days)+(J.ph==="yes"?", including public holidays":", excluding public holidays")};
+  if(m==="trip"){
+    var v=rateOf(J),K=tripKm(J);o.unknownArea=!K.known;
+    if(kind==="adhoc"){
+      var drops=dropsOf(J),routes=Math.ceil(drops/30),perRoute=Math.ceil(drops/routes);
+      var total=routes*(tripCost(J,v,K.km,perRoute,sp.mult)+(sunph?num(S.sunph):0));
+      o.rate=total/drops;o.unit="per drop";o.qty=drops;o.fixedAmount=total;
+      o.specs.push(v.label+" · "+sp.name+tempTxt);
+      o.specs.push((J.date?fiso(J.date)+" · ":"")+winTxt+(sunph?" · "+(di.ph?"Public holiday":"Sunday")+" rate":""));
+      o.specs.push("Collection: "+(zoneName(J.colArea)||"to be confirmed")+" → "+(drops>1?drops+" drops":(zoneName(J.delArea)||"to be confirmed"))+(drops===1&&K.known&&K.km?" (approx. "+K.km+" km)":""));
+      if(routes>1)o.specs.push("Uses "+routes+" vehicles (up to 30 drops each)");
+    }else{
+      var pd=dropsOf(J);
+      if(J.svc==="courier"){o.rate=tripCost(J,v,K.km,1,sp.mult)}
+      else{var rt=Math.ceil(pd/30);o.rate=rt*tripCost(J,v,K.km,Math.ceil(pd/rt),sp.mult)/pd}
+      o.unit=J.svc==="courier"?"per job":"per drop";o.qty=Math.round(pd*(dpm+phDays));o.monthly=true;
+      var disc=tierDisc(o.qty);if(disc){o.rate*=1-disc/100;o.specs.push("Includes "+disc+"% volume discount")}
+      /* Quote Desk floor: new regular chilled/frozen routes average at least reeferFloor a drop (never shown to visitors) */
+      var fl=num(C.reeferFloor);
+      if(fl>0&&isCold(J)&&J.svc!=="courier"&&o.rate<fl){o.rate=fl;o.floor=true}
+      o.specs.unshift(v.label+" · "+sp.name+tempTxt);
+      o.specs.splice(1,0,daysTxt()+" · "+winTxt);
+      o.specs.splice(2,0,"About "+pd+" "+(J.svc==="courier"?"job":"drop")+(pd===1?"":"s")+" per day ("+o.qty+" per month)");
+      if(pd>1){if(J.colArea)o.specs.push("Collection from "+zoneName(J.colArea)+"; delivery points across Singapore")}
+      else if(J.colArea||J.delArea)o.specs.push("From "+(zoneName(J.colArea)||"—")+" to "+(zoneName(J.delArea)||"—")+(K.known&&K.km?" (approx. "+K.km+" km)":""));
+      if(sunDays+phDays)o.extras.push(["Sunday / public holiday surcharge",(sunDays+phDays)*pd*num(S.sunph)]);
+    }
+  }else if(m==="perdrop"){
+    var base=num(C.lastmile[J.temp==="mixed"?"frozen":(J.temp||"ambient")]),w=pick(WEIGHT_PCL,J.pWeight);
+    o.rate=base+(w>num(C.lastmile.maxKg)?(w-num(C.lastmile.maxKg))*num(C.lastmile.overKg):0)+base*(sp.mult-1);
+    o.unit="per drop";
+    o.specs.push(sp.name+tempTxt+" · "+winTxt);
+    if(kind==="adhoc"){o.qty=Math.max(1,Math.round(num(J.lmDrops))||1);o.specs.push((J.date?fiso(J.date)+" · ":"")+o.qty+" drops"+(sunph?" · "+(di.ph?"public holiday":"Sunday"):""))}
+    else{var lpd=dropsOf(J);o.qty=Math.round(lpd*(dpm+phDays));o.monthly=true;
+      o.specs.push(daysTxt()+" · about "+lpd+" drops per day ("+o.qty+" per month)");
+      var d2=tierDisc(o.qty);if(d2){o.rate*=1-d2/100;o.specs.push("Includes "+d2+"% volume discount")}}
+    o.specs.push("Up to "+C.lastmile.maxKg+" kg per parcel; one delivery attempt per drop");
+  }else{
+    var hv=rateOf(J),u=J.hireUnit||"day",wd=num(C.hire&&C.hire.weekDays)||6,dur=kind==="regular"?1:Math.max(1,Math.round(num(J.duration))||1),veh=Math.max(1,Math.round(num(J.dps))||1),noVeh=J.withVeh==="no";
+    var unitRate=u==="week"?num(hv.day)*wd:num(hv[u]),per=unitRate*dur;
+    o.specs.push(noVeh?"Delivery personnel (DP) only; vehicle provided by you":"Delivery personnel (DP) with vehicle: "+hv.label+tempTxt);
+    if(kind==="adhoc"){o.rate=per+(sunph&&u==="day"?num(S.sunph):0);o.unit="per DP";o.qty=veh;
+      o.specs.push((J.date?"Starting "+fiso(J.date)+" · ":"")+dur+" "+u+(dur>1?"s":"")+(u==="week"?" ("+wd+" working days each)":"")+(sunph&&u==="day"?" · "+(di.ph?"Public holiday":"Sunday")+" rate":""))}
+    else{o.rate=per;o.unit="per DP per month";o.qty=veh;o.monthly=true;o.specs.push("Monthly hire"+(J.date?", starting "+fiso(J.date):""))}
+    o.specs.push(veh+" delivery personnel");
+  }
+  if(String(J.goods||"").trim())o.specs.push("Goods / details: "+String(J.goods).trim());
+  o.rate=r2(o.rate);
+  o.amount=r2((o.fixedAmount!=null?o.fixedAmount:o.rate*o.qty)+o.extras.reduce(function(a,x){return a+x[1]},0));
+  o.extras=o.extras.map(function(x){return [x[0],r2(x[1])]});
+  o.sub=o.amount;o.gst=r2(o.sub*num(C.gst)/100);o.total=r2(o.sub+o.gst);
+  o.tier=tierOf(J,o);
+  return o;
+}
+function tierOf(J,o){
+  var C=CFG(),T=C.tailored||{},m=modelOf(J),kind=kindOf(J),pd=kind==="regular"&&m!=="hire"?dropsOf(J):0;
+  if((T.vehicles||[]).indexOf(J.vehicle)>=0)return "tailored";
+  if(m==="trip"&&kind==="adhoc"&&(o.qty>num(T.maxAdhocDrops)||J.drops===">30"))return "tailored";
+  if(m==="trip"&&kind==="regular"&&J.svc!=="courier"&&pd>num(T.maxDropsPerDay))return "tailored";
+  if(m==="perdrop"&&(kind==="adhoc"?o.qty:pd)>num(T.maxLastmileDrops))return "tailored";
+  if(m==="hire"&&(num(J.dps)>num(T.maxHireVehicles)||J.withVeh==="no"))return "tailored";
+  if(kind==="regular"||isCold(J)||m==="perdrop"||o.unknownArea)return "range";
+  return "exact";
+}
+
+/* ---------- helpers ---------- */
+var OVR=window.CMS_CHAT_SETTINGS;if(OVR&&typeof OVR==="object")Object.assign(SETTINGS,OVR);
+var PREVIEW=SETTINGS.preview===true||(SETTINGS.preview==="auto"&&/(^|\.)claude|claudeusercontent|anthropic/.test(location.hostname));
+var KEY="cmsbot.v1";
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+var money=function(n){return "$"+num(n).toLocaleString("en-SG",{minimumFractionDigits:2,maximumFractionDigits:2})};
+var moneyR=function(n){n=num(n);return n<100?money(n):"$"+Math.round(n).toLocaleString("en-SG")};
+var pad=function(n){return (n<10?"0":"")+n};
+var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var wait=function(ms){return new Promise(function(r){setTimeout(r,reduce?0:ms)})};
+function sgNow(){
+  var p={};try{new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Singapore",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",weekday:"short",hour12:false}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value})}catch(e){var d=new Date();p={year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),weekday:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}}
+  return {y:+p.year,m:+p.month,d:+p.day,h:(+p.hour)%24,wd:p.weekday};
+}
+function isoAdd(days){var n=sgNow(),d=new Date(Date.UTC(n.y,n.m-1,n.d+days));return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())}
+function teamStatus(){
+  var n=sgNow(),open=n.wd!=="Sun"&&n.h>=9&&n.h<21;
+  if(open)return {open:true,txt:"Our team is online now"};
+  var next=(n.wd==="Sun")?"today":(n.h<9?"today":(n.wd==="Sat"?"Monday":"tomorrow"));
+  if(n.wd==="Sun")next="Monday";
+  return {open:false,txt:"Team replies from 9 am "+next};
+}
+function linkify(t){
+  var h=esc(t);
+  h=h.replace(/\+65 8899 6423/g,'<a href="https://wa.me/'+SETTINGS.whatsapp+'" target="_blank" rel="noopener">+65 8899 6423</a>');
+  h=h.replace(/([a-z]+@cmspl\.biz)/g,'<a href="mailto:$1">$1</a>');
+  if(SETTINGS.careersUrl)h=h.replace(/Join Our Team page/g,'<a href="'+esc(SETTINGS.careersUrl)+'" target="_blank" rel="noopener">Join Our Team page</a>');
+  return h;
+}
+var ICON={
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></svg>',
+  calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
+  q:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6M12 17h.01"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 9.5c.3 2 2 4 4.5 4.8l1.2-1.2 2 .8"/></svg>',
+  mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></svg>'
+};
+
+/* ---------- FAQ matching (answers only from the approved FAQ) ---------- */
+var STOP={};"a an the is are am was were be been being do does did can could would should will shall may might must i you we they he she it my your our their me us them to of in on at for from with by about and or if as that this these those there here what which who whom how when where why any some its im pls please hi hello hey u ur also just get got need want like know tell much many have has had deliver delivers delivered delivery deliveries send sending sent possible shipment shipments order orders receive received stuff thing things serve address addresses guys u2 able let okay".split(" ").forEach(function(w){STOP[w]=1});
+function norm(s){return String(s||"").toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z0-9°±%&/+\- ]+/g," ").replace(/\s+/g," ").trim()}
+function stem(w){
+  if(w.length>5&&/ing$/.test(w))w=w.slice(0,-3);
+  else if(w.length>4&&/ies$/.test(w))w=w.slice(0,-3)+"y";
+  else if(w.length>4&&/ied$/.test(w))w=w.slice(0,-3)+"y";
+  else if(w.length>4&&/ed$/.test(w))w=w.slice(0,-2);
+  else if(w.length>3&&/s$/.test(w)&&!/ss$/.test(w))w=w.slice(0,-1);
+  if(w.length>4&&/e$/.test(w))w=w.slice(0,-1);
+  return w;
+}
+function toks(s){return norm(s).split(/[\s/]+/).map(function(x){return x.replace(/^[-+]+|[-+]+$/g,"")}).filter(function(w){return w&&!STOP[w]}).map(stem)}
+var FAQX=FAQ.map(function(f,i){
+  var seen={},K=[];
+  f.k.split(",").forEach(function(k){var strong=k.trim().charAt(0)==="!";k=k.replace("!","");var n=norm(k),t=toks(k),key=t.length?t.slice().sort().join(" "):"="+n;
+    if(!n||seen[key])return;seen[key]=1;K.push({n:n,t:t,w:(strong?5:2)+(t.length>1?(t.length-1)*1.5:0)})});
+  return {i:i,f:f,q:toks(f.q),k:K};
+});
+function score(text){
+  var n=" "+norm(text)+" ",T=toks(text),set={};T.forEach(function(w){set[w]=1});
+  return FAQX.map(function(x){
+    var s=0,used={};
+    x.k.forEach(function(k){
+      var hit=k.t.length?k.t.every(function(w){return set[w]}):n.indexOf(" "+k.n+" ")>=0;
+      if(hit){s+=k.w;k.t.forEach(function(w){used[w]=1})}
+    });
+    x.q.forEach(function(w){if(set[w]&&!used[w]){s+=1;used[w]=1}});
+    return {x:x,s:s};
+  }).sort(function(a,b){return b.s-a.s});
+}
+var VOCAB={};FAQX.forEach(function(x){x.q.forEach(function(w){VOCAB[w]=1});x.k.forEach(function(k){k.t.forEach(function(w){VOCAB[w]=1})})});
+function unknown(text){return toks(text).filter(function(w){return !VOCAB[w]&&!/^\d+$/.test(w)}).length}
+function confident(R,text){var b=R[0].s,c=R[1].s;if(text&&b<3&&unknown(text))return false;return b>=3||(b>=2&&c<=b/2)}
+function fq(q){for(var i=0;i<FAQ.length;i++)if(FAQ[i].q===q)return i;return 0}
+var I_NOCARRY=fq("Are there items you will not carry?"),I_COST=fq("How much does a delivery cost?");
+var BANNED=/\b(cooked|hot food|catering|bento|dangerous goods?|hazardous|flammable|explosives?|gas cylinders?|live animals?|livestock|pets?|cash)\b/i;
+
+/* ---------- state ---------- */
+var ST={open:false,log:[],live:null,flow:null,lead:null,asked:[],nudged:false,contact:null,ai:0,aiOff:false};
+function save(){try{sessionStorage.setItem(KEY,JSON.stringify({log:ST.log.slice(-70),live:ST.live,flow:ST.flow,lead:ST.lead,asked:ST.asked.slice(-12),nudged:ST.nudged,contact:ST.contact,open:ST.open,ai:ST.ai,aiOff:ST.aiOff}))}catch(e){}}
+function load(){try{var v=JSON.parse(sessionStorage.getItem(KEY)||"null");if(v&&Array.isArray(v.log))Object.assign(ST,v)}catch(e){}}
+
+/* ---------- DOM ---------- */
+var host,root,el={},busy=false;
+var CSS=":host{all:initial}\n*{box-sizing:border-box}\n[hidden]{display:none!important}\n.wrap{--navy:#0f2a52;--navy2:#16386b;--red:#ae1e23;--red-dk:#8e171c;--blue:#1270c4;--blue-50:#e9f2fb;--ink:#152033;--muted:#566275;--line:#e1e6ee;--soft:#f2f5f9;--wa:#128c4a;\n--side:calc(20px + env(safe-area-inset-right,0px));--base:calc(20px + var(--lift,0px) + env(safe-area-inset-bottom,0px));\nfont-family:\"Barlow\",system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:var(--ink);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;text-align:left}\n.side-left{--side:calc(20px + env(safe-area-inset-left,0px))}\nbutton,input,textarea{font:inherit;color:inherit}\n.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}\n:focus-visible{outline:3px solid #7cc4ff;outline-offset:2px}\nsvg{display:block}\n.launch{position:fixed;z-index:2147483000;bottom:var(--base);right:var(--side);display:flex;align-items:center;gap:10px;height:56px;padding:0 22px 0 18px;border:0;border-radius:28px;background:var(--navy);color:#fff;font-weight:600;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:0 14px 34px -10px rgba(15,42,82,.6),0 2px 6px rgba(0,0,0,.12);transition:transform .18s,background .18s}\n.side-left .launch{right:auto;left:var(--side)}\n.launch:hover{background:var(--navy2);transform:translateY(-1px)}\n.launch svg{width:22px;height:22px}\n.launch .dot{width:9px;height:9px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 4px rgba(61,220,132,.22)}\n.nudge{position:fixed;z-index:2147483000;bottom:calc(var(--base) + 68px);right:var(--side);width:min(260px,calc(100vw - 40px));background:#fff;border-radius:14px 14px 4px 14px;box-shadow:0 18px 40px -12px rgba(15,42,82,.45),0 1px 3px rgba(0,0,0,.08);animation:rise .35s ease-out}\n.side-left .nudge{right:auto;left:var(--side);border-radius:14px 14px 14px 4px}\n.nudge .nb{display:block;width:100%;border:0;background:none;text-align:left;padding:13px 36px 13px 15px;font-size:15px;line-height:1.35;font-weight:500;cursor:pointer;color:var(--ink)}\n.nudge .nx{position:absolute;top:6px;right:6px;width:26px;height:26px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:50%;padding:5px}\n.nudge .nx:hover{background:var(--soft)}\n.panel{position:fixed;z-index:2147483001;bottom:calc(var(--base) + 70px);right:var(--side);width:400px;height:min(660px,calc(100vh - 130px - var(--lift,0px)));background:#fff;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 70px -18px rgba(15,42,82,.55),0 4px 14px rgba(0,0,0,.08);transform-origin:bottom right;animation:pop .22s ease-out}\n.side-left .panel{right:auto;left:var(--side);transform-origin:bottom left}\n.hd{background:var(--navy);color:#fff;padding:12px 10px 12px 14px;display:flex;align-items:center;gap:12px;flex:none}\n.hd .mark{width:48px;flex:none;display:block}\n.hd .mark svg{width:48px;height:auto}\n.hd .t{min-width:0;flex:1}\n.hd .t b{display:block;font-family:\"Barlow Condensed\",\"Arial Narrow\",Arial,sans-serif;font-weight:700;font-size:22px;letter-spacing:.03em;text-transform:uppercase;line-height:1}\n.hd .t small{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12.5px;color:#b9c8df;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.hd .st{width:7px;height:7px;border-radius:50%;background:#e3a547;flex:none}\n.hd .st.on{background:#3ddc84}\n.hd .ic{width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#c9d6ea;display:grid;place-items:center;cursor:pointer;flex:none}\n.hd .ic svg{width:20px;height:20px}\n.hd .ic:hover{background:rgba(255,255,255,.1);color:#fff}\n.log{position:relative;flex:1;overflow-y:auto;overscroll-behavior:contain;background:var(--soft);padding:16px 14px 10px;display:flex;flex-direction:column}\n.msgs,.live{display:flex;flex-direction:column;gap:9px}\n.live{margin-top:9px}\n.live:empty{margin:0}\n.msg{max-width:86%;padding:10px 13px;border-radius:15px;font-size:15px;line-height:1.45;overflow-wrap:anywhere;animation:rise .2s ease-out}\n.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}\n.me{align-self:flex-end;background:var(--navy);color:#fff;border-bottom-right-radius:4px}\n.msg a{color:var(--blue);font-weight:600;text-decoration:none}\n.msg a:hover{text-decoration:underline}\n.muted{color:var(--muted);font-size:13.5px}\n.stepn{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--blue);margin-bottom:3px}\n.typing{display:flex;gap:4px;padding:13px 14px}\n.typing i{width:7px;height:7px;border-radius:50%;background:#a9b4c4;animation:blink 1s infinite}\n.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}\n.chips{display:flex;flex-wrap:wrap;gap:7px}\n.chips.qlist{flex-direction:column;align-items:flex-start}\n.chips.grid{display:grid;grid-template-columns:1fr 1fr}\n.chip{border:1.5px solid #c9d6e6;background:#fff;color:var(--navy);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14.5px;line-height:1.2;cursor:pointer;text-align:left;transition:border-color .15s,background .15s}\n.chips.qlist .chip{border-radius:12px;font-weight:500;color:var(--ink)}\n.chips.grid .chip{border-radius:12px}\n.chip:hover{border-color:var(--blue);background:var(--blue-50)}\n.chip.pri{background:var(--red);border-color:var(--red);color:#fff}\n.chip.pri:hover{background:var(--red-dk);border-color:var(--red-dk)}\n.chip.back{border-color:transparent;background:transparent;color:var(--muted);padding-left:4px;padding-right:6px;font-weight:600}\n.chip.back:hover{color:var(--navy);background:transparent;text-decoration:underline}\n.lbl2{margin:6px 0 -2px;font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}\n.hint{margin:0;font-size:13.5px;color:var(--muted);padding:0 2px}\n.tiles{display:grid;gap:8px}\n.tile{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px 11px 11px;border:1px solid var(--line);background:#fff;border-radius:13px;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s,transform .15s}\n.tile:hover{border-color:#b7c6da;box-shadow:0 6px 16px -10px rgba(15,42,82,.4);transform:translateY(-1px)}\n.tile .ti{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none;background:#fbe9ea;color:var(--red)}\n.tile .ti svg{width:21px;height:21px}\n.tile.t-topics .ti,.tile.t-reefer .ti{background:var(--blue-50);color:var(--blue)}\n.tile.t-person .ti,.tile.t-outdrive .ti{background:#e3f4ea;color:var(--wa)}\n.tile b{display:block;font-size:15.5px;font-weight:700;color:var(--ink);line-height:1.2}\n.tile small{display:block;margin-top:2px;font-size:13px;color:var(--muted);line-height:1.3}\n.tile .chev{margin-left:auto;color:#9aa6b8;flex:none}\n.tile .chev svg{width:18px;height:18px}\n.card-wrap{align-self:stretch;animation:rise .25s ease-out}\n.est{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:0 10px 26px -18px rgba(15,42,82,.5)}\n.est .eh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;background:var(--navy);color:#fff}\n.est .eh b{font-size:14.5px;font-weight:600}\n.est .eh span{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b9c8df;white-space:nowrap}\n.est .big{padding:15px 14px 4px;font-family:\"Barlow Condensed\",\"Arial Narrow\",Arial,sans-serif;font-weight:700;font-size:34px;line-height:1;color:var(--navy);letter-spacing:.01em}\n.est .big small{display:block;margin-top:7px;font-family:\"Barlow\",system-ui,sans-serif;font-weight:500;font-size:13.5px;line-height:1.35;color:var(--muted);letter-spacing:0}\n.est ul{list-style:none;margin:10px 14px 0;padding:0;font-size:13.5px;color:#3a4658}\n.est li{padding:6px 0;border-top:1px dashed var(--line)}\n.est .note{margin:10px 14px 14px;padding:9px 11px;border-radius:9px;background:var(--soft);font-size:12.5px;line-height:1.45;color:var(--muted)}\n.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:11px;padding:12px 16px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;line-height:1.1}\n.btn svg{width:19px;height:19px;flex:none}\n.btn.pri{background:var(--red);color:#fff}.btn.pri:hover{background:var(--red-dk)}\n.btn.pri:disabled{opacity:.6;cursor:wait}\n.btn.ghost{background:transparent;color:var(--muted)}\n.btn.sm{padding:9px 14px;font-size:14px;background:var(--navy);color:#fff}\n.hand{display:grid;gap:8px}\n.hand .wa{background:var(--wa);color:#fff}.hand .wa:hover{background:#0e7a40}\n.hand .ml{background:#fff;color:var(--navy);box-shadow:inset 0 0 0 1.5px #c9d6e6}.hand .ml:hover{box-shadow:inset 0 0 0 1.5px var(--navy)}\n.datepick{display:flex;align-items:flex-end;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 10px}\n.datepick label{flex:1;display:grid;gap:3px;font-size:12px;font-weight:600;color:var(--muted)}\n.datepick input{border:1.5px solid #d9dee6;border-radius:9px;padding:8px 9px;font-size:16px;min-width:0;width:100%;background:#fff}\n.dform{display:grid;gap:10px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px}\n.dform label{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--muted)}\n.dform label i{color:var(--red);font-style:normal}\n.dform input,.dform textarea{width:100%;border:1.5px solid #d9dee6;border-radius:10px;padding:10px 11px;font-size:16px;font-weight:500;color:var(--ink);background:#fff;outline:none;resize:vertical}\n.dform input:focus,.dform textarea:focus,.datepick input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(18,112,196,.15)}\n.dform .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}\n.dform .row{display:flex;gap:8px;align-items:center}\n.dform .err{margin:0;padding:8px 10px;border-radius:9px;background:#fbe9ea;color:var(--red);font-size:13.5px;font-weight:600}\n.dform .fine{margin:0;font-size:12px;color:var(--muted)}\n.dform .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}\n.ft{display:flex;gap:8px;align-items:center;padding:10px 10px 6px 12px;border-top:1px solid var(--line);background:#fff;flex:none}\n.ft input{flex:1;min-width:0;border:1.5px solid #d9dee6;border-radius:12px;padding:11px 13px;font-size:16px;font-weight:500;outline:none;background:#fff}\n.ft input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(18,112,196,.15)}\n.ft input::placeholder{color:#8792a3}\n.send{width:46px;height:46px;flex:none;border:0;border-radius:12px;background:var(--red);color:#fff;display:grid;place-items:center;cursor:pointer}\n.send:hover{background:var(--red-dk)}\n.send svg{width:21px;height:21px}\n.legal{margin:0;padding:2px 12px 9px;background:#fff;font-size:11.5px;color:#8792a3;text-align:center;flex:none}\n@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}\n@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}\n@keyframes blink{0%,80%,100%{opacity:.35}40%{opacity:1}}\n@media (max-width:560px){\n.launch{width:58px;height:58px;padding:0;justify-content:center;border-radius:50%}\n.launch .lbl,.launch .dot{display:none}\n.is-open .launch,.is-open .nudge{display:none}\n.panel{inset:0;width:auto;height:auto;border-radius:0;bottom:0;right:0;left:0;animation:rise .2s ease-out}\n.hd{padding-top:calc(12px + env(safe-area-inset-top,0px))}\n.legal{padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))}\n.msg{max-width:90%}\n.dform .two{grid-template-columns:1fr}\n}\n@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}";
+function build(){
+  if(!document.querySelector('link[data-cmsbot-font]')){var l=document.createElement("link");l.rel="stylesheet";l.setAttribute("data-cmsbot-font","");l.href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap";document.head.appendChild(l)}
+  host=document.createElement("div");host.id="cms-chatbot";host.style.cssText="all:initial";
+  document.body.appendChild(host);
+  root=host.attachShadow?host.attachShadow({mode:"open"}):host;
+  var side=SETTINGS.side==="left"?"left":"right";
+  root.innerHTML='<style>'+CSS+'</style>'+
+  '<div class="wrap side-'+side+'" style="--lift:'+num(SETTINGS.lift)+'px">'+
+    '<button class="launch" type="button" aria-expanded="false" aria-controls="cmsbot-panel"><span class="dot" aria-hidden="true"></span>'+ICON.chat+'<span class="lbl">Ask CMS</span></button>'+
+    '<div class="nudge" hidden><button class="nx" type="button" aria-label="Dismiss">'+ICON.x+'</button><button class="nb" type="button">Need a price? I can estimate a delivery in about a minute.</button></div>'+
+    '<section class="panel" id="cmsbot-panel" role="dialog" aria-label="Ask CMS" hidden>'+
+      '<header class="hd"><span class="mark" aria-hidden="true"><svg viewBox="0 0 372.96 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CMS"><path fill="#ae1e23" d="M 41.11 102.91 C 17.95 102.91 11.05 95.23 7.71 86.22 C 4.93 75.53 8.16 69.07 11.83 63.73 C 18.51 53.49 34.99 27.44 34.99 27.44 C 46.68 10.19 67.94 8.41 76.39 8.07 C 89.42 7.74 218.16 8.07 218.16 8.07 C 229.01 8.07 235.86 12.92 240.03 17.93 C 249.21 10.58 260.9 7.9 281.44 7.93 L 364.43 7.93 C 358.08 16.93 338.04 45.64 338.04 45.64 L 330.7 45.64 C 331.53 49.48 331.7 50.48 331.7 50.48 C 332.37 55.5 331.03 60.34 326.69 67.35 C 319.51 79.54 316 85.05 316 85.05 C 310.66 93.73 300.31 101.58 275.6 102.91 Z"/><path fill="#fff" d="M 36.21 90 C 20.74 90 11.72 81.77 18.84 70.3 C 27.42 56.83 43.34 32.23 43.34 32.23 C 54.94 18.68 70.67 17.85 83.62 18.41 L 146.64 18.41 L 137.06 32.84 C 133.95 32.84 80.91 32.79 80.91 32.79 C 69.55 32.79 67.55 35.07 62.82 42.36 C 58.09 49.65 41.28 75.53 41.28 75.53 L 110.85 75.53 L 100.72 90 Z"/><path fill="#fff" d="M 103.89 90 C 115.47 72.86 150.64 18.29 150.64 18.29 L 220.33 18.29 C 231.68 18.29 236.47 29.56 234.13 35.46 C 229.34 43.25 200.4 90 200.4 90 L 173.76 90 C 188.27 67.29 206.39 38.89 206.39 38.89 C 207.22 37.74 206.83 37.21 203.07 37.24 L 196.62 37.24 C 192.78 43.3 163.22 90 163.22 90 L 140.68 90 C 146.44 80.54 173.32 37.21 173.32 37.21 L 164.89 37.21 C 160.63 43.39 130.41 90 130.41 90 Z"/><path fill="#fff" d="M 204.13 90 C 209.81 81.21 213.15 75.53 213.15 75.53 C 222.66 75.53 276.52 75.62 276.52 75.62 C 278.6 75.62 281.27 75.7 283.28 72.86 C 285.78 68.77 291.04 60.59 291.04 60.59 L 234.71 60.59 C 229.43 60.59 225.67 56.91 228.51 49.98 C 231.93 44.22 240.28 31.62 240.28 31.62 C 249.88 17.26 271.25 18.23 279.69 18.29 L 342.97 18.29 L 332.7 32.79 L 278.68 32.79 C 272.68 32.79 266.41 33.45 263.24 36.96 C 262.07 38.55 257.31 45.89 257.31 45.89 L 313.08 45.89 C 318.18 45.89 324.27 49.98 319.43 57.5 C 314.59 65.01 306.07 78.95 306.07 78.95 C 302.73 83.46 295.8 89.36 276.93 90 Z"/></svg></span><div class="t"><b>Ask CMS</b><small><i class="st"></i><span class="stx"></span></small></div>'+
+        '<button class="ic reset" type="button" aria-label="Start over" title="Start over">'+ICON.reset+'</button><button class="ic close" type="button" aria-label="Close chat" title="Close">'+ICON.x+'</button></header>'+
+      '<div class="log" role="log" aria-live="polite"><div class="msgs"></div><div class="live"></div></div>'+
+      '<form class="ft" autocomplete="off"><label class="sr" for="cmsbot-in">Your message</label><input id="cmsbot-in" enterkeyhint="send" placeholder="Type your question…" maxlength="400"><button class="send" type="submit" aria-label="Send">'+ICON.send+'</button></form>'+
+      '<p class="legal">AI-assisted, using CMS\'s approved information. Estimates are not quotations.</p>'+
+    '</section></div>';
+  el.wrap=root.querySelector(".wrap");el.launch=root.querySelector(".launch");el.panel=root.querySelector(".panel");el.log=root.querySelector(".log");
+  el.msgs=root.querySelector(".msgs");el.live=root.querySelector(".live");el.form=root.querySelector(".ft");el.input=root.querySelector("#cmsbot-in");
+  el.nudge=root.querySelector(".nudge");
+  el.launch.addEventListener("click",function(){toggle()});
+  root.querySelector(".close").addEventListener("click",function(){toggle(false)});
+  root.querySelector(".reset").addEventListener("click",restart);
+  el.form.addEventListener("submit",function(e){e.preventDefault();var v=el.input.value.trim();if(!v)return;el.input.value="";whenFree(function(){onText(v)})});
+  el.panel.addEventListener("keydown",function(e){if(e.key==="Escape")toggle(false)});
+  root.querySelector(".nb").addEventListener("click",function(){hideNudge();var fresh=!ST.log.length;toggle(true,fresh);if(fresh||!(ST.flow&&ST.flow.step))startFlow()});
+  root.querySelector(".nx").addEventListener("click",hideNudge);
+  /* the homepage preview's older "Ask CMS" button is replaced by this one */
+  var ob=document.getElementById("askBtn"),oc=document.getElementById("chat");
+  if(ob&&/askbtn/.test(ob.className)){ob.style.display="none";if(oc&&/chat/.test(oc.className))oc.style.display="none"}
+}
+function status(){var s=teamStatus();root.querySelector(".stx").textContent=s.txt;root.querySelector(".st").className="st"+(s.open?" on":"")}
+function toggle(force,skipHome){
+  var open=force==null?el.panel.hidden:force;
+  el.panel.hidden=!open;ST.open=open;el.launch.setAttribute("aria-expanded",String(open));el.wrap.classList.toggle("is-open",open);
+  if(open){hideNudge();status();if(!el.msgs.childNodes.length){if(ST.log.length)restore();else if(!skipHome)home(true)}
+    var small=window.innerWidth<=560;if(small){ST.htmlOv=document.documentElement.style.overflow;document.documentElement.style.overflow="hidden"}
+    setTimeout(function(){if(!small)el.input.focus();scroll()},60)}
+  else{if(ST.htmlOv!=null){document.documentElement.style.overflow=ST.htmlOv;ST.htmlOv=null}el.launch.focus()}
+  save();
+}
+function hideNudge(){el.nudge.hidden=true;ST.nudged=true;save()}
+function scroll(){
+  /* keep the newest reply in view: its top edge if it and its options are taller than the panel */
+  var a=el.msgs.lastElementChild,max=el.log.scrollHeight-el.log.clientHeight;
+  if(!a||/\b(me|typing)\b/.test(a.className))return el.log.scrollTop=max;
+  el.log.scrollTop=Math.min(max,a.offsetTop-12);
+}
+function render(m){
+  var d=document.createElement("div");
+  d.className=m.w==="u"?"msg me":m.w==="c"?"card-wrap":"msg bot";
+  d.innerHTML=m.h;el.msgs.appendChild(d);
+}
+function push(w,h){var m={w:w,h:h};ST.log.push(m);render(m);scroll();save()}
+function me(t){push("u",esc(t))}
+async function bot(h,ms){
+  var t=document.createElement("div");t.className="msg bot typing";t.innerHTML="<i></i><i></i><i></i>";el.msgs.appendChild(t);scroll();
+  await wait(ms==null?Math.min(900,280+h.length*2):ms);t.remove();push("b",h);
+}
+function setLive(name,arg){ST.live={n:name,a:arg};save();drawLive()}
+function clearLive(){el.live.innerHTML="";ST.live=null}
+function drawLive(){
+  el.live.innerHTML="";var L=ST.live;if(!L)return;
+  var f=LIVE[L.n];if(f)f(L.a);
+  el.input.placeholder=ST.live&&ST.live.n==="step"&&curStep()&&curStep().type==="text"?(curStep().hint||"Type your answer…"):(ST.live&&ST.live.n==="step"&&curStep()&&curStep().type==="num"?"Type a number, or tap one":"Type your question…");
+  scroll();
+}
+function chips(list,cls){
+  var w=document.createElement("div");w.className="chips"+(cls?" "+cls:"");
+  list.forEach(function(c){var b=document.createElement("button");b.type="button";b.className="chip"+(c.cls?" "+c.cls:"");b.innerHTML=c.html||esc(c.label);if(c.title)b.title=c.title;
+    b.addEventListener("click",function(){if(busy)return;c.go()});w.appendChild(b)});
+  el.live.appendChild(w);return w;
+}
+function restore(){
+  ST.log.forEach(render);scroll();
+  if(ST.live)return drawLive();
+  /* the page was reloaded while a reply was being typed: pick up where it stopped */
+  if(ST.flow&&ST.flow.step){var F=ST.flow,id=F.J[F.step]===undefined?F.step:nextStepId(F.J,F.step);
+    run(function(){if(id)return ask(id);F.step=null;F.done=true;return showEstimate()})}
+  else if(ST.flow&&ST.flow.done)setLive("estimate");
+  else home(false);
+}
+function restart(){
+  if(busy)return;
+  ST.log=[];ST.flow=null;ST.live=null;ST.lead=null;ST.asked=[];el.msgs.innerHTML="";el.live.innerHTML="";save();home(true);
+}
+function whenFree(cb){if(!busy)return cb();var t=setInterval(function(){if(!busy){clearInterval(t);cb()}},80)}
+async function run(fn){if(busy)return;busy=true;try{await fn()}finally{busy=false}}
+
+/* ---------- home, topics, answers, hand-off ---------- */
+function home(first){run(async function(){
+  clearLive();
+  await bot(first?"Hi! I'm the CMS assistant. I can answer your questions, give you a delivery estimate, or pass you to our team.":"What would you like to do next?",first?500:350);
+  setLive("home");
+})}
+var POPULAR=["What services do you offer?","What temperatures can your reefer trucks hold?","How do I book a delivery?","Do you deliver on weekends and public holidays?"].map(fq);
+var LIVE={};
+LIVE.home=function(){
+  var t=document.createElement("div");t.className="tiles";
+  [["estimate",ICON.calc,"Get an estimate","Price a delivery in about a minute"],["topics",ICON.q,"Ask a question","Services, cold chain, booking, payment"],["person",ICON.person,"Talk to a person","WhatsApp or email our team"]].forEach(function(x){
+    var b=document.createElement("button");b.type="button";b.className="tile t-"+x[0];b.innerHTML='<span class="ti">'+x[1]+'</span><span><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="chev">'+ICON.chev+'</span>';
+    b.addEventListener("click",function(){if(busy)return;me(x[2]);act(x[0])});t.appendChild(b)});
+  el.live.appendChild(t);
+  var p=document.createElement("p");p.className="lbl2";p.textContent="Popular questions";el.live.appendChild(p);
+  chips(POPULAR.map(function(i){return {label:FAQ[i].q,go:function(){me(FAQ[i].q);answer(i)}}}),"qlist");
+};
+function act(a){
+  if(a==="estimate")return startFlow();
+  if(a==="topics")return topics();
+  if(a==="person")return handoff();
+  if(a==="email")return handoff("email");
+  if(a==="home")return home(false);
+}
+function topics(){run(async function(){clearLive();await bot("Pick a topic:",300);setLive("topics")})}
+LIVE.topics=function(){
+  chips(TOPICS.map(function(t){return {label:t[1],go:function(){me(t[1]);topic(t[0])}}}));
+  if(ST.flow&&ST.flow.step)chips([{label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}}]);
+};
+function topic(id){run(async function(){clearLive();var n=TOPICS.filter(function(t){return t[0]===id})[0][1];await bot(n+": tap a question.",300);setLive("topic",id)})}
+LIVE.topic=function(id){
+  var list=[];FAQ.forEach(function(f,i){if(f.t===id)list.push({label:f.q,go:function(){me(f.q);answer(i)}})});
+  chips(list,"qlist");chips([{label:"‹ All topics",cls:"back",go:function(){topics()}}]);
+};
+function answer(i,extra){run(async function(){
+  clearLive();var f=FAQ[i];
+  await bot(linkify(f.a));
+  setLive("after",{i:i,rel:extra||null});
+})}
+LIVE.after=function(a){
+  var f=FAQ[a.i],L=[];
+  (f.act||[]).forEach(function(x){
+    if(x==="estimate"&&!(ST.flow&&ST.flow.step))L.push({label:"Get an estimate",cls:"pri",go:function(){me("Get an estimate");startFlow()}});
+    if(x==="person")L.push({label:"Talk to a person",go:function(){me("Talk to a person");handoff()}});
+    if(x==="join"&&SETTINGS.careersUrl)L.push({label:"Open Join Our Team page",cls:"pri",go:function(){window.open(SETTINGS.careersUrl,"_blank","noopener")}});
+    if(x==="email")L.push({label:"Email "+SETTINGS.email,go:function(){me("Email "+SETTINGS.email);handoff("email")}});
+  });
+  if(a.rel!=null)L.push({label:"Related: "+FAQ[a.rel].q,go:function(){me(FAQ[a.rel].q);answer(a.rel)}});
+  if(ST.flow&&ST.flow.step)L.unshift({label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}});
+  L.push({label:"Another question",go:function(){me("Another question");topics()}});
+  if(!(ST.flow&&ST.flow.step))L.push({label:"Main menu",cls:"back",go:function(){home(false)}});
+  chips(L);
+};
+function summaryText(){
+  var F=ST.flow;if(!F||!F.J||!F.J.svc)return "";
+  var J=F.J,o=calc(J),S=SERVICES[J.svc],lines=[(S.ui)+", "+(kindOf(J)==="adhoc"?"one-off":"regular")];
+  o.specs.slice(0,4).forEach(function(s){lines.push("- "+s)});
+  if(F.done)lines.push(o.tier==="tailored"?"Estimate: tailored proposal needed":"Estimate shown: "+priceLine(o));
+  return lines.join("\n");
+}
+function handoff(mode){run(function(){return handoffBody(mode)})}
+async function handoffBody(mode){
+  clearLive();
+  await bot(mode==="email"?"Email us any time at "+linkify(SETTINGS.email)+". Our customer service team answers personally.":"Our customer service team answers personally on WhatsApp and email.<br><span class=\"muted\">Customer service: 9am to 9pm, Monday to Saturday.</span>");
+  setLive("handoff");
+}
+LIVE.handoff=function(){
+  var last=ST.asked.length?ST.asked[ST.asked.length-1]:"",sum=summaryText(),ref=ST.lead&&ST.lead.ref;
+  var text="Hi CMS, "+(ref?"following up on my chatbot enquiry "+ref+".":sum?"I'd like help with a delivery:\n"+sum:last?"I was asking on your website: "+last:"I have an enquiry.");
+  var d=document.createElement("div");d.className="hand";
+  d.innerHTML='<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/'+SETTINGS.whatsapp+'?text='+encodeURIComponent(text.slice(0,900))+'">'+ICON.phone+'<span>WhatsApp '+esc(SETTINGS.whatsappShow)+'</span></a>'+
+    '<a class="btn ml" href="mailto:'+SETTINGS.email+'?subject='+encodeURIComponent(ref?"Chatbot enquiry "+ref:"Enquiry from cmspl.biz")+'&body='+encodeURIComponent(text.slice(0,1500))+'">'+ICON.mail+'<span>Email '+esc(SETTINGS.email)+'</span></a>';
+  el.live.appendChild(d);
+  var L=[];if(ST.flow&&ST.flow.step)L.push({label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}});
+  L.push({label:"Main menu",cls:"back",go:function(){home(false)}});chips(L);
+};
+
+
+/* ---------- AI layer (Claude via Make). Prices always come from the rate-card engine, never from the AI. ---------- */
+function aiReady(){return !!SETTINGS.aiEndpoint&&!PREVIEW&&!ST.aiOff&&ST.ai<num(SETTINGS.aiMaxPerVisit||15)&&typeof fetch==="function"}
+function looksLikeJob(t){
+  var n=norm(t);
+  if(n.split(" ").length<4)return false;
+  return /\d+\s*(cartons?|ctns?|pallets?|boxes|box|drops?|outlets?|stores?|shops?|pcs|pieces|kg|deliveries|parcels|packages|drivers?|vans?|trucks?|lorr(y|ies)|bags?|trips?)\b/.test(n)
+    ||/\bfrom\b.+\bto\b/.test(n)
+    ||/\b(today|tomorrow|tmr|tmrw|next (mon|tues?|wed|thur?s?|fri|sat|sun)\w*|this (mon|tues?|wed|thur?s?|fri|sat|sun)\w*)\b/.test(n)&&/\b(deliver|send|move|collect|pick ?up|transport|need)\b/.test(n);
+}
+function plain(h){var d=document.createElement("div");d.innerHTML=h;return (d.textContent||"").replace(/\s+/g," ").trim()}
+function transcript(latest){
+  var L=[],m;
+  for(var i=Math.max(0,ST.log.length-14);i<ST.log.length;i++){m=ST.log[i];if(m.w==="c")continue;var t=plain(m.h).replace(/^Step \d+ of \d+/,"").slice(0,500);if(t)L.push((m.w==="u"?"Visitor: ":"Assistant: ")+t)}
+  /* the latest visitor message is already the last line of the log */
+  if(!L.length||L[L.length-1]!=="Visitor: "+latest.slice(0,500))L.push("Visitor: "+latest.slice(0,500));
+  var ctx="";
+  if(ST.flow&&ST.flow.J&&ST.flow.J.svc){var s=curStep();ctx="[Context: the visitor is in the middle of an estimate for "+SERVICES[ST.flow.J.svc].ui+(s?"; the current question is \""+plain(s.q(ST.flow.J))+"\"":"")+".]\n"}
+  /* personal identifiers never leave the page */
+  return ("Website chat transcript (latest message last).\n"+ctx+L.slice(-12).join("\n"))
+    .replace(/\b[STFGM]\d{7}[A-Z]\b/gi,"[ID number removed]").replace(/\b(?:\d[ -]?){13,19}\b/g,"[card number removed]");
+}
+var MONEY=/(S?\$\s?\d[\d,.]*|\bSGD\s?\d|\d+\s?(dollars|bucks|cents)\b)/gi;
+function amounts(t){return (String(t||"").match(/\d[\d,]*(\.\d+)?/g)||[]).map(function(x){return x.replace(/,/g,"").replace(/\.0+$/,"")})}
+function safeReply(r,visitor){
+  r=String(r||"").replace(/[*_#`]+/g,"").replace(/\bconsignments?\b/gi,"jobs").trim();
+  var own=amounts(visitor);
+  var bad=(r.match(MONEY)||[]).filter(function(x){var a=amounts(x)[0];return !/^S?\$\s?100(\.00)?$/.test(x.replace(/\s/g,""))&&own.indexOf(a)<0});
+  if(bad.length||/minimum (charge|fee|order)/i.test(r)&&!/priced on its own/i.test(r))return null;
+  if(r.split(/\s+/).length>110)r=r.split(/\s+/).slice(0,100).join(" ")+"…";
+  return r;
+}
+async function askAI(t){
+  var typing=document.createElement("div");typing.className="msg bot typing";typing.innerHTML="<i></i><i></i><i></i>";el.msgs.appendChild(typing);scroll();
+  var o=null;
+  try{
+    var ctl=typeof AbortController==="function"?new AbortController():null,timer=setTimeout(function(){if(ctl)ctl.abort()},num(SETTINGS.aiTimeout||25)*1000);
+    var body=new URLSearchParams();body.set("conv",transcript(t));
+    var res=await fetch(SETTINGS.aiEndpoint,{method:"POST",body:body,signal:ctl?ctl.signal:undefined});
+    clearTimeout(timer);
+    var txt=await res.text();o=JSON.parse(txt);
+    if(!o||o.error||typeof o.reply!=="string")o=null;
+  }catch(e){o=null}
+  typing.remove();
+  /* a garbled or near-empty reply (rare) is not shown: the approved FAQ answers instead */
+  if(o&&!(o.reply.trim().length>=12||/[\u3000-\u9fff\uac00-\ud7af]{4}/.test(o.reply)))return false;
+  if(!o){ST.aiFails=(ST.aiFails||0)+1;if(ST.aiFails>=2)ST.aiOff=true;save();return false}
+  ST.ai++;ST.aiFails=0;if(o.unanswered)ST.asked.push("[no approved answer] "+t);save();
+  var reply=safeReply(o.reply,t);
+  var job=o.intent==="estimate"||o.intent==="quote"?cleanJob(o.job||{}):null;
+  if(!reply){
+    /* the AI tried to talk money: use the approved pricing answer instead */
+    await bot(linkify(FAQ[I_COST].a),200);
+    if(job&&job.svc){await startFlowWith(job);return true}
+    setLive("after",{i:I_COST});return true;
+  }
+  await bot(linkify(esc(reply)).replace(/&amp;/g,"&"),150);
+  if(job&&job.svc){await startFlowWith(job);return true}
+  if(o.intent==="estimate"||o.intent==="quote"){
+    if(ST.flow&&ST.flow.step){setLive("resume");return true}
+    if(ST.flow&&ST.flow.done&&o.intent==="quote"){setLive("estimate");return true}
+    clearLive();ST.flow={J:{},step:null,hist:[],done:false};ST.lead=null;save();await ask("svc");return true;
+  }
+  if(o.intent==="handoff"){setLive("handoff");return true}
+  setLive("aiafter",{join:/Join Our Team/i.test(reply)});return true;
+}
+LIVE.aiafter=function(a){
+  var L=[];
+  if(a&&a.join&&SETTINGS.careersUrl&&!(ST.flow&&ST.flow.step)){
+    chips([{label:"Open Join Our Team page",cls:"pri",go:function(){window.open(SETTINGS.careersUrl,"_blank","noopener")}},{label:"Main menu",cls:"back",go:function(){home(false)}}]);return;
+  }
+  if(ST.flow&&ST.flow.step)L.push({label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}});
+  else L.push({label:"Get an estimate",cls:"pri",go:function(){me("Get an estimate");startFlow()}});
+  L.push({label:"Talk to a person",go:function(){me("Talk to a person");handoff()}});
+  if(!(ST.flow&&ST.flow.step))L.push({label:"Main menu",cls:"back",go:function(){home(false)}});
+  chips(L);
+};
+/* keep only answers the estimate's own questions would accept */
+function cleanJob(j){
+  var J={},ok=function(list,v){return list.some(function(x){return x[0]===v})};
+  var v=function(k){return typeof j[k]==="string"?j[k].trim():""};
+  if(SERVICES[v("svc")])J.svc=v("svc");else return J;
+  var probe=function(id,val){var s=stepById(id);if(!s||val==="")return;var T=Object.assign({},J);if(s.when&&!s.when(T))return;
+    if(s.type==="num"){var n=parseInt(val,10);if(n>0&&n<100000)J[id]=String(n);return}
+    if(s.type==="date"){if(/^\d{4}-\d{2}-\d{2}$/.test(val)&&val>=isoAdd(0)&&val<=isoAdd(365))J[id]=val;return}
+    if(s.type==="text"){if(!BANNED.test(val))J[id]=val.slice(0,160);return}
+    if(s.opts&&ok(s.opts(J),val))J[id]=val};
+  ["kind","withVeh","hireUnit","dps","temp","vehicle","date","days","perDay","drops","lmDrops","colArea","delArea","goods"].forEach(function(k){probe(k,v(k))});
+  return J;
+}
+async function startFlowWith(J){
+  clearLive();
+  /* a job already under way for the same service keeps its answers; the AI only fills gaps */
+  if(ST.flow&&ST.flow.J&&ST.flow.J.svc===J.svc&&!ST.flow.done){var K=ST.flow.J;Object.keys(J).forEach(function(k){if(K[k]===undefined)K[k]=J[k]});J=K}
+  ST.flow={J:J,step:null,hist:[],done:false};ST.lead=null;save();
+  var nx=nextStepId(J,null);
+  if(nx)return ask(nx);
+  ST.flow.done=true;save();return showEstimate();
+}
+
+/* ---------- free text ---------- */
+function onText(t){
+  var s=curStep();
+  if(ST.live&&ST.live.n==="step"&&s){
+    if(s.type==="text"&&!/\?\s*$/.test(t))return answerStep(s,t,t);
+    if(s.type==="num"){var n=parseInt(t.replace(/[^\d]/g,""),10);if(/^\s*[\d,\s]+\s*(drops?|days?|weeks?|months?|people|pax|persons?|deliveries)?\s*$/i.test(t)&&n>0)return answerStep(s,String(n),t)}
+    if(s.type==="date"){var dt=parseDate(t);if(dt)return answerStep(s,dt,t)}
+    var opts=stepOpts(s),nt=norm(t),hits=opts.filter(function(o){var l=norm(o[1]);return l===nt||(nt.length>2&&(" "+l+" ").indexOf(" "+nt+" ")>=0)});
+    if(hits.length===1)return answerStep(s,hits[0][0],t);
+  }
+  question(t);
+}
+function parseDate(t){
+  var n=norm(t);if(/^today$/.test(n))return isoAdd(0);if(/^tomorrow$/.test(n))return isoAdd(1);
+  var m=n.match(/^(\d{1,2})[ /\-.](\d{1,2})[ /\-.](\d{2,4})$/);if(m){var y=+m[3];if(y<100)y+=2000;return y+"-"+pad(+m[2])+"-"+pad(+m[1])}
+  return null;
+}
+function question(t){run(async function(){
+  me(t);ST.asked.push(t);save();clearLive();
+  var n=norm(t);
+  if(/^(hi|hello|hey|hai|yo|good (morning|afternoon|evening)|morning)( there)?[!. ]*$/.test(n)){await bot("Hello! How can I help?",300);return setLive(ST.flow&&ST.flow.step?"resume":"home")}
+  if(/^(ok|okay|thanks?|thank you|thx|ty|great|cool|noted|alright)\b/.test(n)&&n.length<30){await bot("You're welcome. Anything else I can help with?",300);return setLive(ST.flow&&ST.flow.step?"resume":"home")}
+  var R=score(t),b=R[0],c=R[1];
+  if(/\b(human|real person|real people|agent|someone|somebody|staff|speak to|talk to|call me|live chat|representative)\b/.test(n)&&!/\b(hours?|open)\b/.test(n)&&b.s<6)return handoffBody();
+  /* job descriptions and anything the approved FAQ can't match go to the AI, when it's available */
+  /* with the AI on, the FAQ answers directly only when every word of the question is in its vocabulary
+     ("are your reefer trucks halal certified?" must not get the fleet answer) */
+  if(aiReady()&&(looksLikeJob(t)||!confident(R,t)||unknown(t)>0)){if(await askAI(t))return}
+  if(confident(R,t)){
+    var rel=(c&&c.s>=3&&c.s>=b.s*0.8)?c.x.i:null;
+    await bot(linkify(b.x.f.a));
+    if(BANNED.test(t)&&b.x.f.t!=="goods"){await bot(linkify(FAQ[I_NOCARRY].a),300)}
+    return setLive("after",{i:b.x.i,rel:rel});
+  }
+  if(BANNED.test(t)){await bot(linkify(FAQ[I_NOCARRY].a));return setLive("after",{i:I_NOCARRY})}
+  if(b.s>=1.5){await bot("I want to get this right. Did you mean one of these?",350);return setLive("maybe",R.slice(0,3).filter(function(r){return r.s>=1}).map(function(r){return r.x.i}))}
+  if(/\b(quote|quotation|estimate|price|cost|how much|rate|book|booking)\b/.test(n)){await bot(linkify(FAQ[I_COST].a));return setLive("after",{i:I_COST})}
+  await bot("I don't have an approved answer for that, so I won't guess. Our team can answer it personally.",400);
+  setLive("handoff");
+})}
+LIVE.maybe=function(ids){
+  chips(ids.map(function(i){return {label:FAQ[i].q,go:function(){me(FAQ[i].q);answer(i)}}}),"qlist");
+  chips([{label:"None of these, talk to a person",go:function(){me("Talk to a person");handoff()}}]);
+};
+LIVE.resume=function(){chips([{label:"Back to my estimate",cls:"pri",go:function(){resumeFlow()}},{label:"Main menu",cls:"back",go:function(){ST.flow=null;home(false)}}])};
+
+/* ---------- estimate / booking flow ---------- */
+var ZONECHIPS=function(){return CFG().zones.map(function(z){return [z[0],z[1]]}).concat([["?","Not sure"]])};
+var STEPS=[
+  {id:"svc",type:"tiles",q:function(){return "What would you like us to deliver?"},opts:function(){return Object.keys(SERVICES).map(function(k){return [k,SERVICES[k].ui,SERVICES[k].sub]})}},
+  {id:"kind",when:function(J){return J.svc!=="outdrive"},q:function(){return "Is this a one-off job or a regular arrangement?"},opts:function(){return [["adhoc","One-off (ad-hoc)"],["regular","Regular (scheduled)"]]}},
+  {id:"withVeh",when:function(J){return J.svc==="outdrive"},q:function(){return "Do you need our vehicle too, or only the driver?"},opts:function(){return [["yes","Driver with our vehicle"],["no","Driver only, for your vehicle"]]}},
+  {id:"hireUnit",when:function(J){return J.svc==="outdrive"},q:function(){return "How would you like to hire?"},opts:function(){return [["day","By the day"],["week","By the week"],["month","By the month"]]}},
+  {id:"duration",type:"num",when:function(J){return J.svc==="outdrive"&&J.hireUnit!=="month"},q:function(J){return "For how many "+J.hireUnit+"s?"},opts:function(J){return J.hireUnit==="week"?[["1","1"],["2","2"],["3","3"],["4","4"]]:[["1","1"],["2","2"],["3","3"],["5","5"]]}},
+  {id:"dps",when:function(J){return J.svc==="outdrive"},q:function(){return "How many delivery personnel do you need?"},opts:function(){return [["1","1"],["2","2"],["3","3"],["4","More than 3"]]}},
+  {id:"temp",when:function(J){return J.svc==="reefer"||J.svc==="lastmile"||(J.svc==="outdrive"&&J.withVeh==="yes")},q:function(J){return J.svc==="reefer"?"Chilled or frozen?":J.svc==="lastmile"?"What temperature are the goods?":"What will they carry?"},
+    opts:function(J){return J.svc==="reefer"?[["chilled","Chilled (2–8 °C)"],["frozen","Frozen (−18 °C)"],["mixed","Both chilled and frozen"]]:[["ambient","Normal (ambient)"],["chilled","Chilled (2–8 °C)"],["frozen","Frozen (−18 °C)"]]}},
+  {id:"vehicle",when:function(J){return J.svc==="reefer"||J.svc==="van"||J.svc==="courier"||(J.svc==="outdrive"&&J.withVeh==="yes")},q:function(){return "Which vehicle?"},
+    opts:function(J){var cold=isCold(J);if(J.svc==="courier")return [["moto","Motorcycle"],["van","Van"]];
+      if(cold)return [["","Let CMS decide"],["l10","10 ft reefer truck"],["l14","14 ft reefer truck"]];
+      return [["","Let CMS decide"],["van","Van"],["l10","10 ft truck"],["l14","14 ft truck"],["t24","24 ft truck"]]}},
+  {id:"date",type:"date",q:function(J){return J.svc==="outdrive"?"When should they start?":J.kind==="regular"?"When would you like to start?":"Which date is the job?"}},
+  {id:"days",when:function(J){return J.svc!=="outdrive"&&J.kind==="regular"},q:function(){return "Which days do you need us?"},opts:function(){return DAYS}},
+  {id:"ph",when:function(J){return J.svc!=="outdrive"&&J.kind==="regular"},q:function(){return "Including public holidays?"},opts:function(){return [["no","No"],["yes","Yes"]]}},
+  {id:"perDay",when:function(J){return J.svc!=="outdrive"&&J.kind==="regular"},q:function(J){return J.svc==="courier"?"About how many jobs a day?":"About how many drops a day?"},opts:function(){return PERDAY.map(function(p){return [p[0],p[1]]})}},
+  {id:"drops",when:function(J){return J.kind==="adhoc"&&modelOf(J)==="trip"},q:function(){return "How many drop-off points?"},opts:function(){return ADDROPS.map(function(p){return [p[0],p[1]]})}},
+  {id:"lmDrops",type:"num",when:function(J){return J.kind==="adhoc"&&J.svc==="lastmile"},q:function(){return "How many drops (deliveries) in total?"},opts:function(){return [["20","20"],["50","50"],["100","100"],["200","200"]]}},
+  {id:"colArea",when:function(J){return modelOf(J)==="trip"},q:function(){return "Where do we collect from?"},opts:ZONECHIPS},
+  {id:"delArea",when:function(J){return modelOf(J)==="trip"&&dropsOf(J)===1},q:function(){return "And where does it go?"},opts:ZONECHIPS},
+  {id:"speed",when:function(J){return modelOf(J)==="trip"&&J.kind==="adhoc"&&!isCold(J)},q:function(){return "How soon should it arrive?"},opts:function(){return [["standard","Next working day"],["sameday","Same day"],["express4","Within 4 hours"],["express2","Within 2 hours"],["economy","2 to 3 working days"]]}},
+  {id:"window",when:function(J){return J.svc!=="outdrive"},q:function(){return "Any delivery time window?"},opts:function(){return [["9-9","Anytime 9am to 9pm (standard)"],["9-6","9am to 6pm"],["9-10","9am to 10pm"],["4h","A 4-hour window"],["appt","A fixed appointment time"]]}},
+  {id:"pieces",when:function(J){return J.svc==="courier"},q:function(){return "How many pieces?"},opts:function(){return PIECES.map(function(p){return [p[0],p[1]]})}},
+  {id:"pWeight",when:function(J){return J.svc==="lastmile"},q:function(){return "Typical weight per parcel?"},opts:function(){return WEIGHT_PCL.map(function(p){return [p[0],p[1]]})}},
+  {id:"handling",when:function(J){return J.svc==="reefer"||J.svc==="van"},q:function(){return "Anything special about the load?"},opts:function(){return [["none","Nothing special"],["bulky","Bulky or odd-sized"],["fragile","Fragile"],["helper","Needs an extra helper"]]}},
+  {id:"goods",type:"text",q:function(J){return J.svc==="outdrive"?"Briefly, what will they do? For example your working hours, drops a day and type of goods.":"What are you sending, and roughly how much?"},
+    hintf:function(J){return J.svc==="outdrive"?"e.g. Mon to Sat, 8am to 5pm, about 40 drops a day":J.svc==="courier"?"e.g. 2 envelopes of documents":"e.g. 20 cartons of frozen meat, about 300 kg"}}
+];
+function stepById(id){return STEPS.filter(function(s){return s.id===id})[0]}
+function curStep(){return ST.flow&&ST.flow.step?stepById(ST.flow.step):null}
+function stepOpts(s){return s.opts?s.opts(ST.flow.J):[]}
+function activeSteps(J){return STEPS.filter(function(s){return !s.when||s.when(J)})}
+function nextStepId(J,after){var A=activeSteps(J),seen=after==null;for(var i=0;i<A.length;i++){if(seen&&J[A[i].id]===undefined)return A[i].id;if(A[i].id===after)seen=true}
+  for(var j=0;j<A.length;j++)if(J[A[j].id]===undefined)return A[j].id;return null}
+function startFlow(){run(async function(){
+  clearLive();ST.flow={J:{},step:null,hist:[],done:false};ST.lead=null;save();
+  await bot("Let's work out an estimate. A few quick taps, and you can ask me a question at any point.",380);
+  await ask("svc");
+})}
+async function ask(id){
+  var F=ST.flow;F.step=id;var s=stepById(id),A=activeSteps(F.J),n=A.indexOf(s)+1;
+  await bot('<span class="stepn">Step '+n+' of '+A.length+'</span>'+esc(s.q(F.J)),300);
+  setLive("step");
+}
+function resumeFlow(){run(async function(){me("Back to my estimate");clearLive();var s=curStep();if(!s)return;await bot("Sure. "+esc(s.q(ST.flow.J)),300);setLive("step")})}
+LIVE.step=function(){
+  var F=ST.flow,s=curStep();if(!s)return;
+  var opts=stepOpts(s),back=F.hist.length?[{label:"‹ Back",cls:"back",go:function(){goBack()}}]:[];
+  if(s.type==="tiles"){
+    var t=document.createElement("div");t.className="tiles svc";
+    opts.forEach(function(o){var b=document.createElement("button");b.type="button";b.className="tile t-"+o[0];
+      b.innerHTML='<span class="ti">'+(o[0]==="reefer"?ICON.snow:o[0]==="outdrive"?ICON.person:ICON.calc)+'</span><span><b>'+esc(o[1])+'</b><small>'+esc(o[2])+'</small></span><span class="chev">'+ICON.chev+'</span>';
+      b.addEventListener("click",function(){if(!busy)answerStep(s,o[0],o[1])});t.appendChild(b)});
+    el.live.appendChild(t);chips([{label:"Main menu",cls:"back",go:function(){ST.flow=null;save();home(false)}}]);return;
+  }
+  if(s.type==="date"){
+    chips([{label:"Today",go:function(){answerStep(s,isoAdd(0),"Today")}},{label:"Tomorrow",go:function(){answerStep(s,isoAdd(1),"Tomorrow")}},{label:"Not sure yet",go:function(){answerStep(s,"","Not sure yet")}}]);
+    var d=document.createElement("form");d.className="datepick";d.innerHTML='<label><span>Or pick a date</span><input type="date" min="'+isoAdd(0)+'" required></label><button type="submit" class="btn sm">OK</button>';
+    d.addEventListener("submit",function(e){e.preventDefault();var v=d.querySelector("input").value;if(v&&!busy)answerStep(s,v,fiso(v))});
+    el.live.appendChild(d);if(back.length)chips(back);return;
+  }
+  if(s.type==="text"){
+    var g=document.createElement("p");g.className="hint";g.textContent="Type it below. "+(s.hintf?s.hintf(F.J):"");el.live.appendChild(g);
+    s.hint=s.hintf?s.hintf(F.J):"";if(back.length)chips(back);
+    setTimeout(function(){el.input.focus()},50);return;
+  }
+  chips(opts.map(function(o){return {label:o[1],go:function(){answerStep(s,o[0],o[1])}}}),opts.length>5?"grid":"");
+  if(back.length)chips(back);
+};
+function answerStep(s,val,label){run(async function(){
+  var F=ST.flow;me(label);clearLive();
+  if(s.id==="goods"&&BANNED.test(val)&&!F.bannedOk){
+    F.pendingGoods=val;save();
+    await bot("Just to check: "+linkify(FAQ[I_NOCARRY].a).replace(/^Yes\. /,""),400);
+    return setLive("banned");
+  }
+  F.hist.push({step:s.id,J:JSON.parse(JSON.stringify(F.J))});
+  F.J[s.id]=val;
+  /* answers that no longer apply are cleared when an earlier answer changes */
+  Object.keys(F.J).forEach(function(k){var st=stepById(k);if(st&&st.when&&!st.when(F.J))delete F.J[k]});
+  if(s.id==="temp"||s.id==="svc")delete F.J.vehicle,delete F.J.speed;
+  save();
+  if(s.id==="date"&&val&&kindOf(F.J)==="adhoc"){var di=dayInfo(val);if(di.sun||di.ph)await bot("Noted: that's a "+(di.ph?"public holiday":"Sunday")+". We deliver on weekends and public holidays; surcharges may apply.",350)}
+  var nx=nextStepId(F.J,s.id);
+  if(nx)return ask(nx);
+  F.step=null;F.done=true;save();
+  await showEstimate();
+})}
+LIVE.banned=function(){
+  chips([{label:"Change what I'm sending",go:function(){run(async function(){me("Change what I'm sending");clearLive();await bot(esc(stepById("goods").q(ST.flow.J)),250);setLive("step")})}},
+    {label:"It's none of these, continue",go:function(){var F=ST.flow;F.bannedOk=true;answerStep(stepById("goods"),F.pendingGoods,"It's none of these, continue")}}]);
+};
+function goBack(){run(async function(){
+  var F=ST.flow,h=F.hist.pop();if(!h)return;me("Back");clearLive();
+  F.J=h.J;F.step=h.step;F.done=false;save();
+  var s=stepById(h.step),A=activeSteps(F.J);
+  await bot('<span class="stepn">Step '+(A.indexOf(s)+1)+' of '+A.length+'</span>'+esc(s.q(F.J)),250);setLive("step");
+})}
+function priceLine(o){
+  var C=CFG(),v=num(C.variancePct)/100,per=o.monthly?" a month":"";
+  if(o.tier==="range")return moneyR(Math.floor(o.total*(1-v)*100)/100)+" – "+moneyR(Math.ceil(o.total*(1+v)*100)/100)+per+" incl. GST";
+  return money(o.total)+per+" incl. GST";
+}
+async function showEstimate(){
+  var J=ST.flow.J,o=calc(J),C=CFG(),v=num(C.variancePct)/100,S=SERVICES[J.svc],h;
+  var unitTxt=o.unit.replace(/^per /,"");
+  var badge=o.tier==="exact"?"Estimate":o.tier==="range"?"Estimate · range":"Tailored proposal";
+  if(o.tier==="tailored"){
+    h='<div class="big">Tailored proposal<small>Because of its size or the vehicles involved, our team prices this job personally.</small></div>';
+  }else if(o.tier==="range"){
+    var lo=Math.floor(o.total*(1-v)*100)/100,hi=Math.ceil(o.total*(1+v)*100)/100,rl=Math.floor(o.rate*(1-v)*100)/100,rh=Math.ceil(o.rate*(1+v)*100)/100;
+    h='<div class="big">'+moneyR(lo)+' – '+moneyR(hi)+'<small>'+(o.monthly?"a month, ":"")+'incl. GST'+(o.qty>1||o.monthly?' · about '+money(rl)+' – '+money(rh)+' '+esc(o.unit)+' before GST':'')+'</small></div>';
+  }else{
+    h='<div class="big">'+money(o.total)+'<small>incl. GST · '+money(o.sub)+' before GST'+(o.qty>1?' · '+o.qty+' '+(unitTxt==="DP"?"personnel":unitTxt+"s")+' at '+money(o.rate)+' each':'')+'</small></div>';
+  }
+  var notes=[];
+  if(o.tier==="range")notes.push("Shown as a range of about ±"+num(C.variancePct)+"% until we confirm details such as access, waiting time and load.");
+  if(J.speed==="express2"||J.speed==="express4"||J.speed==="sameday")notes.push("Urgent and same-day jobs depend on availability; we'll confirm quickly.");
+  notes.push("This is an estimate, not a quotation. Our team sends a formal quotation from "+SETTINGS.quoteEmail+" within one working day.");
+  var card='<div class="est"><div class="eh"><b>'+esc(S.ui)+' · '+(kindOf(J)==="adhoc"?"one-off":"regular")+'</b><span>'+badge+'</span></div>'+h+
+    '<ul>'+o.specs.slice(0,6).map(function(s){return "<li>"+esc(s)+"</li>"}).join("")+'</ul><p class="note">'+notes.map(esc).join("<br>")+'</p></div>';
+  await bot(o.tier==="tailored"?"Thanks. Here's where this one lands:":"Here's your estimate:",450);
+  push("c",card);
+  setLive("estimate");
+}
+LIVE.estimate=function(){
+  var o=calc(ST.flow.J);
+  chips([{label:o.tier==="tailored"?"Send details for a tailored proposal":"Request a formal quotation or booking",cls:"pri",go:function(){me(o.tier==="tailored"?"Send details for a tailored proposal":"Request a formal quotation or booking");details()}},
+    {label:"Change an answer",go:function(){ST.flow.done=false;goBack()}},
+    {label:"Talk to a person",go:function(){me("Talk to a person");handoff()}},
+    {label:"New estimate",cls:"back",go:function(){me("New estimate");startFlow()}}]);
+};
+function details(){run(async function(){clearLive();await bot("Great. Where should our team send it? Fields marked * are needed.",350);setLive("form")})}
+LIVE.form=function(){
+  var c=ST.contact||{},f=document.createElement("form");f.className="dform";f.noValidate=true;
+  var fld=function(n,l,type,req,ph,ac){return '<label><span>'+l+(req?' <i>*</i>':'')+'</span>'+(type==="area"?'<textarea name="'+n+'" rows="2" placeholder="'+esc(ph||"")+'">'+esc(c[n]||"")+'</textarea>':'<input name="'+n+'" type="'+type+'" value="'+esc(c[n]||"")+'" placeholder="'+esc(ph||"")+'"'+(ac?' autocomplete="'+ac+'"':'')+(type==="tel"?' inputmode="tel"':'')+'>')+'</label>'};
+  var J=ST.flow.J,trip=modelOf(J)!=="hire";
+  f.innerHTML=fld("name","Your name","text",1,"","name")+fld("company","Company (if any)","text",0,"","organization")+
+    '<div class="two">'+fld("phone","Mobile","tel",1,"8 digits","tel")+fld("email","Email","email",1,"","email")+'</div>'+
+    (trip?fld("pickup","Pickup address","area",0,"Street, unit, postal code")+fld("dropoff",J.svc==="lastmile"||dropsOf(J)>1?"Drop-off addresses (or say you'll send a list)":"Drop-off address","area",0,""):fld("pickup","Work location","area",0,"Where the personnel report"))+
+    fld("notes","Anything else we should know?","area",0,"Access, timing, special handling")+
+    '<input name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">'+
+    '<p class="err" hidden></p><p class="fine">We use these details only to reply to this enquiry.</p>'+
+    '<div class="row"><button type="submit" class="btn pri">Send to CMS</button><button type="button" class="btn ghost cancel">Cancel</button></div>';
+  f.addEventListener("submit",function(e){e.preventDefault();if(!busy)submit(f)});
+  f.querySelector(".cancel").addEventListener("click",function(){if(busy)return;run(async function(){me("Cancel");clearLive();await bot("No problem. Your estimate is still above.",250);setLive("estimate")})});
+  el.live.appendChild(f);
+};
+function readForm(f){var o={};["name","company","phone","email","pickup","dropoff","notes","website"].forEach(function(n){var x=f.querySelector('[name="'+n+'"]');o[n]=x?x.value.trim():""});return o}
+function submit(f){run(async function(){
+  var c=readForm(f),err=f.querySelector(".err"),miss=[];
+  var ph=c.phone.replace(/[^\d+]/g,"");
+  if(c.name.length<2)miss.push("your name");
+  if(ph.replace(/\D/g,"").length<8)miss.push("a mobile number");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(c.email))miss.push("a valid email");
+  if(miss.length){err.hidden=false;err.textContent="Please add "+miss.join(", ")+".";return}
+  err.hidden=true;
+  ST.contact={name:c.name,company:c.company,phone:c.phone,email:c.email};save();
+  if(c.website){clearLive();me("Sent");await bot("Thank you. We'll be in touch.");return}
+  var btn=f.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent="Sending…";
+  var L=buildLead(c),ok=true;
+  if(!PREVIEW&&SETTINGS.endpoint){try{await post(L)}catch(e){ok=false}}
+  clearLive();me("Sent my details");
+  if(!ok){
+    await bot("Sorry, that didn't go through from this page. Please send it to us directly, quoting "+esc(L.ref)+"; your details are filled in.",400);
+    ST.lead={ref:L.ref,failed:true};save();return setLive("handoff");
+  }
+  ST.lead={ref:L.ref,tier:L.tier};save();
+  await bot("Thank you, "+esc(c.name.split(" ")[0])+". Your reference is <b>"+esc(L.ref)+"</b>."+(PREVIEW?' <span class="muted">(Preview: not sent.)</span>':''),400);
+  await bot(L.tier==="tailored"?"Our team will contact you about a tailored proposal.":"Our team will send your formal quotation from "+linkify(SETTINGS.quoteEmail)+" within one working day.",450);
+  setLive("sent");
+})}
+LIVE.sent=function(){
+  var ref=ST.lead&&ST.lead.ref,txt="Hi CMS, following up on my chatbot enquiry "+ref+".";
+  var d=document.createElement("div");d.className="hand";
+  d.innerHTML='<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/'+SETTINGS.whatsapp+'?text='+encodeURIComponent(txt)+'">'+ICON.phone+'<span>Prefer WhatsApp? Message us</span></a>';
+  el.live.appendChild(d);
+  chips([{label:"Ask a question",go:function(){me("Ask a question");topics()}},{label:"New estimate",go:function(){me("New estimate");startFlow()}}]);
+};
+
+/* ---------- lead hand-off (same format as the website estimator, so Quote Desk can prepare the quotation) ---------- */
+function newRef(){var n=sgNow(),A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r="";for(var i=0;i<4;i++)r+=A[Math.floor(Math.random()*A.length)];return "CB-"+pad(n.d)+pad(n.m)+String(n.y).slice(2)+"-"+r}
+function fitJSON(F){var t=JSON.stringify(F);if(t.length<=1900)return t;var G=JSON.parse(t);G.est.description=[];t=JSON.stringify(G);if(t.length<=1900)return t;G.goods=String(G.goods||"").slice(0,200);return JSON.stringify(G).slice(0,1990)}
+function buildLead(c){
+  var C=CFG(),J=ST.flow.J,o=calc(J),S=SERVICES[J.svc],m=modelOf(J),kind=kindOf(J),type=kind==="adhoc"?"Ad-hoc":"Regular",di=dayInfo(J.date),ref=newRef();
+  var temp=J.temp||"ambient",tempL=labelOf(TEMPS,temp);
+  var vehL=J.svc==="outdrive"&&J.withVeh==="no"?"None (delivery personnel only)":(J.vehicle?rateOf(J).name:"Let CMS decide");
+  var K=m==="trip"?tripKm(J):{km:"",known:false},pd=kind==="regular"&&m!=="hire"?dropsOf(J):0;
+  var sunph=kind==="adhoc"?(di.ph?"Public holiday":di.sun?"Sunday":""):"";
+  var speedL=m==="hire"?"":(isCold(J)?"Same day":speedOf(defSpeed(J)).name);
+  var winL=J.svc==="outdrive"?"":labelOf(WINDOWS,J.window||"9-9");
+  var shown=o.tier==="tailored"?"No price shown (tailored proposal needed)":o.tier==="range"?"Range shown: "+priceLine(o)+" (±"+num(C.variancePct)+"%)":"Single price shown: "+priceLine(o);
+  var extras=[];if(J.handling&&J.handling!=="none")extras.push(J.handling);if(J.window==="appt")extras.push("eta");
+  var formData={v:1,kind:kind,svc:S.est,tier:o.tier,variancePct:o.tier==="range"?num(C.variancePct):0,
+    contact:{company:c.company,name:c.name,title:"",email:c.email,phone:c.phone,address:""},
+    job:{temp:temp,speed:isCold(J)?"sameday":(m==="hire"?"":defSpeed(J)),vehicle:J.vehicle||"",
+      from:zoneName(J.colArea),to:(m==="trip"&&dropsOf(J)===1)?zoneName(J.delArea):"",km:K.known?K.km:"",
+      drops:m==="trip"?(kind==="adhoc"?o.qty:pd):0,perDay:pd,weightKg:m==="perdrop"?(pick(WEIGHT_PCL,J.pWeight)||""):"",pieces:J.svc==="courier"?(pick(PIECES,J.pieces)||""):"",
+      handling:(J.handling==="bulky"||J.handling==="fragile")?J.handling:"none",helpers:J.handling==="helper"?1:0,
+      hireUnit:m==="hire"?J.hireUnit:"",withVeh:m==="hire"?J.withVeh:"",duration:m==="hire"?(kind==="regular"?1:num(J.duration)||1):"",vehicles:m==="hire"?num(J.dps):"",bags:"",
+      date:J.date||"",sunph:sunph},
+    goods:J.goods||"",extras:extras,profile:m==="hire"?{clientVeh:"",lines:[]}:null,
+    est:{rate:o.tier==="tailored"?0:o.rate,unit:o.unit,qty:o.qty,monthly:o.monthly,description:o.specs}};
+  var details=["Stage: formal quotation requested (website chatbot)",shown,"Service: "+S.label+" ("+type+")","Temperature: "+tempL,"Vehicle: "+vehL].concat(o.specs,[
+    "Calculated: "+money(o.rate)+" "+o.unit+(o.qty!==1?" × "+o.qty:"")+(o.extras.length?" + "+o.extras.map(function(x){return x[0]+" "+money(x[1])}).join(", "):"")+" = "+money(o.sub)+" + GST = "+money(o.total)+(o.monthly?" per month":""),
+    o.floor?"Priced at the reefer floor (S$"+num(C.reeferFloor)+" a drop on average)":"",o.unknownArea?"Area not given: priced on a typical "+num(C.multiDropKm)+" km route":""]).filter(Boolean).join("\n");
+  var addr=[c.pickup?(m==="hire"?"Work location: ":"Collection: ")+c.pickup:"",c.dropoff?"Delivery: "+c.dropoff:""].filter(Boolean).join("\n");
+  var notes=[c.notes,ST.asked.length?"Questions asked in the chat: "+ST.asked.slice(-8).join(" | "):""].filter(Boolean).join("\n\n");
+  var phone=c.phone.replace(/[^\d+]/g,"");if(/^\d{8}$/.test(phone))phone="+65"+phone;if(/^65\d{8}$/.test(phone))phone="+"+phone;
+  var cv={color_mm8drmn4:{label:"New"},color_mm8dfzk:{label:type},color_mm8d11pg:{label:S.label},color_mm8dw06e:{label:tempL},color_mm8w7r5g:{label:"Chatbot"},
+    text_mm8d5rjq:ref,text_mm8dahtk:c.company,text_mm8dza4g:c.name,email_mm8dex6m:{email:c.email,text:c.email},
+    text_mm8d60xs:kind==="regular"&&m!=="hire"?labelOf(DAYS,J.days)+", PH "+(J.ph==="yes"?"included":"excluded"):sunph,
+    text_mm8d2p4v:[speedL,winL].filter(Boolean).join(" · "),
+    numeric_mm8d3xj0:o.tier==="tailored"?"":String(o.rate),numeric_mm8dzwyb:o.tier==="tailored"?"":String(o.total),numeric_mm8xmw84:o.tier==="tailored"?"":String(o.sub),
+    text_mm8xy1ta:pd?String(pd):"",text_mm8w6ez7:"Reply within 15 minutes, then quote in Quote Desk",
+    long_text_mm8da67x:{text:details},long_text_mm8dvs1n:{text:addr},long_text_mm8ddf96:{text:notes},long_text_mm8dtknz:{text:fitJSON(formData)}};
+  if(/^\+\d{8,15}$/.test(phone))cv.phone_mm8dwrm1={phone:phone,countryShortName:phone.indexOf("+65")===0?"SG":(phone.indexOf("+60")===0?"MY":"SG")};
+  if(J.date)cv.date_mm8dxqmq={date:J.date};
+  var row=function(k,v){return v?'<tr><td style="padding:4px 12px 4px 0;color:#5b6475;vertical-align:top">'+esc(k)+'</td><td style="padding:4px 0">'+esc(v).replace(/\n/g,"<br>")+'</td></tr>':""};
+  var html='<div style="font-family:Arial,sans-serif;font-size:14px;color:#17202e"><h2 style="color:#16386b;margin:0 0 8px">Chatbot enquiry · '+esc(type)+' '+esc(ref)+'</h2><p style="margin:0 0 8px;color:#5b6475">Sent from the website chatbot. The visitor asked for a '+(o.tier==="tailored"?"tailored proposal":"formal quotation")+'.</p><table>'+row("Company",c.company)+row("Contact",c.name)+row("Email",c.email)+row("Phone",c.phone)+row("Service",S.label)+row("Details",details)+row("Addresses",addr)+row("Notes",notes)+'</table></div>';
+  var name=((c.company||c.name)+" · "+S.label+" ("+type+")").slice(0,250);
+  return {ref:ref,tier:o.tier,stage:"formal",type:type,service:S.label,company:c.company||c.name,itemName:name,columnValues:JSON.stringify(cv),
+    columnValuesUpdate:JSON.stringify(Object.assign({name:name},cv)),subject:"Chatbot enquiry "+ref+" – "+(c.company||c.name)+" ("+S.label+", "+type+")",emailHtml:html,
+    payload:{source:"chatbot",stage:"formal",ref:ref,submitted:new Date().toISOString(),type:type,service:S.label,contact:{company:c.company,name:c.name,email:c.email,phone:c.phone},
+      job:J,addresses:addr,notes:notes,estimate:{shown:o.tier,variancePct:o.tier==="range"?num(C.variancePct):0,rate:o.rate,unit:o.unit,qty:o.qty,monthly:o.monthly,extras:o.extras,subtotal:o.sub,gst:o.gst,total:o.total,description:o.specs},page:location.href}};
+}
+function post(L){
+  var f=new URLSearchParams();
+  f.set("source","Chatbot");f.set("stage",L.stage);f.set("type",L.type);f.set("ref",L.ref);f.set("company",L.company);f.set("service",L.service);
+  f.set("itemName",L.itemName);f.set("columnValues",L.columnValues);f.set("columnValuesUpdate",L.columnValuesUpdate);
+  f.set("subject",L.subject);f.set("emailHtml",L.emailHtml);f.set("photos","[]");f.set("payload",JSON.stringify(L.payload));
+  return fetch(SETTINGS.endpoint,{method:"POST",mode:"no-cors",body:f});
+}
+
+/* ---------- start ---------- */
+function init(){
+  if(document.getElementById("cms-chatbot"))return;
+  load();build();
+  if(ST.open&&window.innerWidth>560)toggle(true);
+  var sec=num(SETTINGS.nudgeAfter);
+  if(sec>0&&!ST.nudged&&!ST.log.length)setTimeout(function(){if(el.panel.hidden&&!ST.nudged){el.nudge.hidden=false}},sec*1000);
+  window.CMSChat={open:function(){toggle(true)},close:function(){toggle(false)},estimate:function(){var fresh=!ST.log.length;toggle(true,fresh);if(fresh||!(ST.flow&&ST.flow.step))startFlow()},_calc:calc,_score:score,_faq:FAQ,_build:function(c){return buildLead(c)},_st:ST};
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+
+})();
+</script>
+</body></html>

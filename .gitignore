@@ -1,0 +1,4 @@
+dist/
+test/shots/
+test/site_ai/
+__pycache__/

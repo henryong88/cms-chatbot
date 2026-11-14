@@ -2,25 +2,38 @@
 
 The "Ask CMS" chat assistant for Channel Management Systems Pte Ltd (cmspl.biz).
 
-- **index.html**: test page with the chatbot running live. It is not linked from the website.
-- **cms-chatbot-snippet.html**: the install file. It is one self-contained `<script>` block.
+## For the web developer
 
-## Installing on the website (for the web developer)
+**Download the install package:** [downloads/CMS-Chatbot-v1.1.0-package.zip](downloads/CMS-Chatbot-v1.1.0-package.zip)
 
-1. Open `cms-chatbot-snippet.html` and copy everything in it.
-2. Paste it once into a site-wide footer slot. On WordPress, use WPCode → Footer, or Elementor → Custom Code → `</body>` end. It must load on every page.
-3. Nothing else is needed. There are no libraries, no build step and no server. It runs inside a Shadow DOM, so the theme's CSS can't break it.
-4. **Remove the old floating WhatsApp button ("Need Help? Chat with us").** CMS has decided the chatbot is the single chat entry point in the bottom-right corner. It already hands visitors to WhatsApp and points job seekers to the Join Our Team page.
-5. If the Join Our Team page moves to a new address on the new site, update `careersUrl` in the SETTINGS block at the top of the script.
+It contains:
+- `1-WordPress/cms-chatbot.zip`: a WordPress plugin. Go to **Plugins → Add New Plugin → Upload Plugin**, then **Activate**.
+- `2-Any-other-website/cms-chatbot-snippet.html`: the same chatbot as one `<script>` block, for any other platform.
+- `CMS-Chatbot-Install-Guide.pdf`: step-by-step install, settings, checks and troubleshooting.
+
+**Please do two things on the new site:**
+1. Remove the old floating WhatsApp button ("Need Help? Chat with us"). The chatbot is the single chat button and already hands visitors to WhatsApp.
+2. Keep the Join Our Team page at `/join-our-team/`, or tell CMS its new address.
 
 ## How it works
 
-- **Approved answers.** The 62 FAQs approved by CMS are built in and answered instantly.
-- **AI replies.** Anything else, or a job described in the visitor's own words, goes to Claude through a Make scenario. Claude replies only from the approved facts. It never states prices, and it hands over to WhatsApp or email when unsure.
-- **Estimates.** These always come from the CMS rate card built into the script, never from the AI.
-- **Fallback.** If the AI is slow or unavailable, the chatbot carries on with the approved FAQ.
-- **Leads.** These go to a Make webhook, which creates an item on the monday "Leads" board and emails the sales team.
+- **Approved answers.** The 62 approved FAQs are built in and answered instantly.
+- **AI replies.** Anything else, or a job described in the visitor's own words, goes to Claude through CMS's Make scenario. Claude uses only the approved facts and never quotes prices.
+- **Estimates.** These always come from the CMS rate card inside the script.
+- **Leads.** These go to a Make webhook, which creates an item on the monday "Leads" board (Source: Chatbot) and emails sales.
+- **Fallback.** If the AI is slow or down, the chatbot carries on with the approved answers.
 
-Settings such as the WhatsApp number, emails, webhooks and corner are at the top of the script, under `SETTINGS`.
+## Repository layout (for CMS maintenance)
 
-Owner: Henry Ong, Channel Management Systems Pte Ltd.
+| Path | What it is |
+|---|---|
+| `src/` | Source: `main.js` (settings and rate card), `faq.js` (approved answers), `engine.js` (pricing), `ui.js` (widget), `style.css`, `logo.txt` |
+| `build.py` | Builds `dist/cms-chatbot.js` and the snippet |
+| `package.py` | Builds the developer package (plugin zip, snippet, PDF guide) and publishes `index.html`, `cms-chatbot-snippet.html` and `downloads/` |
+| `package/` | WordPress plugin source and the install guide template |
+| `ai/` | AI system prompt builder (`build_prompt.js`), output schema, evals |
+| `test/` | `faq.js` (answer matching), `e2e.py` (widget and lead), `e2e_ai.py` (AI layer, with Make faked) |
+| `pages/index.template.html` | GitHub Pages phone test page |
+| `index.html` | The live test page (generated) |
+
+© Channel Management Systems Pte Ltd. Proprietary.

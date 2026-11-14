@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>CMS Website Chatbot – Install Guide</title>
+<style>
+@page{size:A4;margin:13mm 15mm 12mm}
+:root{--navy:#0f2a52;--red:#ae1e23;--ink:#152033;--muted:#566275;--line:#e1e6ee;--soft:#f2f5f9}
+*{box-sizing:border-box}
+body{margin:0;font:9.3pt/1.42 Inter,"DejaVu Sans",sans-serif;color:var(--ink)}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:14px}
+header svg{height:30px;width:auto}
+header .meta{text-align:right;font-size:8.5pt;color:var(--muted)}
+h1{font:700 20pt/1.15 "Inter Display",Inter,sans-serif;margin:0 0 6px;color:var(--navy);letter-spacing:-.01em}
+.lead{font-size:10pt;color:var(--muted);margin:0 0 12px;max-width:150mm}
+h2{font:700 11.5pt/1.3 "Inter Display",Inter,sans-serif;color:var(--navy);margin:14px 0 6px;break-after:avoid;display:flex;align-items:center;gap:8px}
+h2 .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font-size:9pt}
+p{margin:0 0 8px}
+ol,ul{margin:0 0 8px;padding-left:18px}
+li{margin:2px 0}
+code,.mono{font:8.8pt/1.45 "DejaVu Sans Mono",monospace;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+pre{font:8.6pt/1.5 "DejaVu Sans Mono",monospace;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0 10px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;margin:2px 0 8px;font-size:8.9pt}
+th,td{text-align:left;vertical-align:top;padding:5px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:8.6pt;text-transform:uppercase;letter-spacing:.04em}
+td:first-child{white-space:nowrap;font-weight:600}
+.box{border:1px solid var(--line);border-left:4px solid var(--red);border-radius:8px;padding:8px 12px;margin:6px 0 8px;background:#fff}
+.box b{color:var(--red)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px}.card p:last-child{margin:0}
+.card h3{margin:0 0 4px;font-size:10.5pt;color:var(--navy)}
+.tag{display:inline-block;font-size:7.5pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:3px;padding:2px 6px;margin-bottom:6px}
+.tag.red{background:var(--red)}
+.page-break{break-before:page}
+footer{margin-top:16px;padding-top:8px;border-top:1px solid var(--line);font-size:8pt;color:var(--muted)}
+</style></head>
+<body>
+<header>__LOGO__<div class="meta">CMS Website Chatbot · v__VERSION__<br>__DATE__</div></header>
+
+<h1>Install guide for the web developer</h1>
+<p class="lead">The “Ask CMS” chat assistant for cmspl.biz. Install takes about five minutes and needs no server work, database or API keys.</p>
+
+<h2>What's in this package</h2>
+<table>
+<tr><th>File</th><th>Use it for</th></tr>
+<tr><td>1-WordPress/cms-chatbot.zip</td><td>A WordPress plugin. Upload, activate, done. <b>Use this if the site runs on WordPress.</b></td></tr>
+<tr><td>2-Any-other-website/<br>cms-chatbot-snippet.html</td><td>The same chatbot as one <code>&lt;script&gt;</code> block, for Webflow, Wix, Squarespace, Shopify, a custom build, or WordPress without plugins.</td></tr>
+<tr><td>CMS-Chatbot-Install-Guide.pdf</td><td>This guide.</td></tr>
+</table>
+
+<div class="two">
+<div class="card"><span class="tag red">Recommended</span><h3>Option A: WordPress plugin</h3>
+<ol>
+<li>In WordPress admin, go to <b>Plugins → Add New Plugin</b>.</li>
+<li>Click <b>Upload Plugin</b>, choose <span class="mono">cms-chatbot.zip</span>, then <b>Install Now</b>.</li>
+<li>Click <b>Activate</b>.</li>
+<li>If the site uses a cache or optimisation plugin (WP Rocket, LiteSpeed, Autoptimize and so on), clear its cache.</li>
+</ol>
+<p>The button appears in the bottom-right corner of every page. To update later, upload the new zip and choose <b>Replace current with uploaded</b>.</p></div>
+<div class="card"><span class="tag">Any other website</span><h3>Option B: paste the snippet</h3>
+<ol>
+<li>Open <span class="mono">cms-chatbot-snippet.html</span> in a text editor and copy everything.</li>
+<li>Paste it once into a site-wide area that loads on every page, just before <code>&lt;/body&gt;</code>: the custom-code / footer-code setting, or the theme footer.</li>
+<li>Publish.</li>
+</ol>
+<p>Use either A or B, never both. If both are used by mistake, the script still loads only once.</p></div>
+</div>
+
+<h2><span class="n">!</span>Two things to do on the new site</h2>
+<div class="box"><b>1. Remove the old floating WhatsApp button</b> (“Need Help? Chat with us”, bottom-right). CMS has decided the chatbot is the only chat button on the site. It already hands visitors to WhatsApp and sends job seekers to the Join Our Team page.</div>
+<div class="box"><b>2. Keep the Join Our Team page at <span class="mono">https://cmspl.biz/join-our-team/</span></b>, or tell CMS its new address so the link can be updated (see settings below).</div>
+
+<h2>How it works (no action needed)</h2>
+<ul>
+<li><b>Self-contained.</b> One JavaScript file, about 100 KB, with no libraries. It renders inside a Shadow DOM, so theme styles cannot affect it and it cannot affect the theme. It uses no cookies, only the browser's session storage for the open conversation.</li>
+<li><b>Approved answers</b> are built in. Other questions get an AI-assisted reply through CMS's own Make.com scenario. The AI only uses CMS's approved information and never quotes prices.</li>
+<li><b>Estimates</b> come from the CMS rate card inside the script. <b>Enquiries</b> go to CMS's Make.com webhook, which adds them to the monday.com Leads board and emails the sales team.</li>
+<li>If the AI service is slow or down, the chatbot carries on with the approved answers.</li>
+</ul>
+
+<h2 class="page-break">Optional settings</h2>
+<p>Change these only if needed. All other settings, including the webhook addresses and the rate card, are managed by CMS. Please leave them unchanged.</p>
+<table>
+<tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+<tr><td>side</td><td>Corner for the button: <code>"right"</code> or <code>"left"</code></td><td>"right"</td></tr>
+<tr><td>lift</td><td>Raises the button by this many pixels, for example above a cookie bar</td><td>0</td></tr>
+<tr><td>nudgeAfter</td><td>Seconds before the small “Need a price?” hint appears; 0 turns it off</td><td>25</td></tr>
+<tr><td>careersUrl</td><td>Address of the Join Our Team page</td><td>https://cmspl.biz/join-our-team/</td></tr>
+</table>
+<p><b>WordPress plugin:</b> add a filter to the theme's <span class="mono">functions.php</span> or a code-snippets plugin:</p>
+<pre>add_filter( 'cms_chatbot_settings', function ( $s ) {
+    $s['lift'] = 80;                                    // example
+    $s['careersUrl'] = 'https://cmspl.biz/careers/';    // example
+    return $s;
+} );</pre>
+<p><b>Snippet:</b> put this line just before the snippet:</p>
+<pre>&lt;script&gt;window.CMS_CHAT_SETTINGS = { lift: 80, careersUrl: "https://cmspl.biz/careers/" };&lt;/script&gt;</pre>
+
+<h2>Check it after installing</h2>
+<ol>
+<li>Open the site on a phone and on a computer. The <b>Ask CMS</b> button shows in the bottom-right corner, and nothing else floats in that corner.</li>
+<li>Tap it and ask <i>“What temperatures can your reefer trucks hold?”</i>. You should get an instant answer.</li>
+<li>Ask <i>“20 cartons frozen meat from Tuas to Changi tomorrow, how much?”</i>. It should reply and start the estimate questions.</li>
+<li>Ask <i>“Are you hiring?”</i>. The <b>Open Join Our Team page</b> button should open the careers page.</li>
+<li>Please do <b>not</b> submit the enquiry form with test details, because it goes straight to the CMS sales team. If you must, put <b>TEST</b> in the company name.</li>
+</ol>
+
+<h2>Troubleshooting</h2>
+<table>
+<tr><th>Problem</th><th>Fix</th></tr>
+<tr><td>Button doesn't appear</td><td>Clear the site cache and any CDN cache (for example Cloudflare). In the browser console, check that <span class="mono">cms-chatbot.js</span> loaded.</td></tr>
+<tr><td>Button shows only after scrolling</td><td>A “delay JavaScript” optimisation is holding it back. Exclude <span class="mono">cms-chatbot.js</span> (or the snippet) from delay or defer.</td></tr>
+<tr><td>Something covers the button</td><td>Use the <code>lift</code> or <code>side</code> setting above.</td></tr>
+<tr><td>Content Security Policy errors</td><td>Allow <span class="mono">https://hook.eu1.make.com</span> in <code>connect-src</code>, and <span class="mono">fonts.googleapis.com</span> and <span class="mono">fonts.gstatic.com</span> for the font.</td></tr>
+</table>
+
+<footer>Channel Management Systems Pte Ltd · www.cmspl.biz · Every Delivery Counts.<br>The chatbot and this package are proprietary to Channel Management Systems Pte Ltd. Questions about the install: contact Henry Ong at CMS.</footer>
+</body></html>
